@@ -4,3 +4,4 @@ project(Chatroom)
 set(CMAKE_CXX_STANDARD 11)
 
 add_executable(Chatroom main.cpp)
+target_link_libraries(Chatroom mysqlclient)
