@@ -340,11 +340,11 @@ ASALocalRun/
 healthchecksdb
 
 #Visual studio files ignore list
-Debug/
 *.sln
 *.vcxproj
 *.vcxproj.filters
 *.vcxproj.user
+readme/
 
 #cmake ignore list
 cmake-build-debug/
