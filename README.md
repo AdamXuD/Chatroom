@@ -12,3 +12,4 @@
   git commit -m "...（修改内容）"
   git push
 4.大概没什么要强调的了
+http://www.imooc.com/wenda/detail/521148
