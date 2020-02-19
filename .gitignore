@@ -348,3 +348,9 @@ readme/
 
 #cmake ignore list
 cmake-build-debug/
+
+#visual studio code ignore list
+.vscode/
+
+#other
+*.a
