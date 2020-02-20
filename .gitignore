@@ -353,4 +353,5 @@ cmake-build-debug/
 .vscode/
 
 #other
+Chatroom
 *.a
