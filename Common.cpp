@@ -18,7 +18,7 @@ void user_wait() //等待接口
 
 int sendMsg(const Msg msg, int fd) //发送消息用接口
 {
-
+    
 }
 
 int recvMsg(int fd, Msg &msg) //接收消息用接口
