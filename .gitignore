@@ -355,3 +355,4 @@ cmake-build-debug/
 #other
 Chatroom
 *.a
+build/
