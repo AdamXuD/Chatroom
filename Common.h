@@ -16,12 +16,13 @@
 #include <mysql/mysql.h>
 #include <map>
 //#include<ncurses.h>  //用户界面库
-#define LOGINMODE 1 //默认关闭登录模式
+#define LOGINMODE 0 //默认关闭登录模式
 
 #define COMMAND 1
-#define ALL 2
-#define PRIVTALK 3
-#define GROUPTALK 4
+#define PIPE 2
+#define ALL 3
+#define PRIVTALK 4
+#define GROUPTALK 5
 
 using namespace std;
 
