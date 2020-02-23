@@ -78,7 +78,7 @@ void Server::Prepare()
 void Server::BroadcastMsg(int call)
 {
     cout << "A user sends a broadcast message." << endl;
-    map<int, string>::iterator i; //声明一个迭代器（相当于int i
+    map<int, pair<string, int>>::iterator i; //声明一个迭代器（相当于int i
     for (i = onlinelist.begin(); i != onlinelist.end(); i++)
     {
         if (i->first != call) //除了发信者外
@@ -132,12 +132,47 @@ void Server::dealWithMsg(int call)
         Grouptalk();
         break;
     }
+    case HEARTBEAT:
+    {
+        onlinelist[call].second = 0;
     }
+    }
+}
+void* Server::dealWithHeartbeat(void *pointer)
+{
+    cout << "Heartbeat thread has been ready." << endl;
+    Server *ptr = (Server *)pointer;
+    while (1)
+    {
+        map<int, pair<string, int>>::iterator i = ptr->onlinelist.begin();
+        for (; i != ptr->onlinelist.end(); i++)
+        {
+            if (i->second.second == 5)
+            {
+                cout << i->second.first << "has been offline." << endl;
+                close(i->first);
+                ptr->onlinelist.erase(i);
+            }
+            else if (i->second.second < 5)
+            {
+                i->second.second += 1;
+            }
+        }
+        sleep(3);
+    }
+    return 0;
 }
 void Server::Start() //服务端程序入口
 {
     static struct epoll_event events[16384]; //设置标识符监听队列
     Prepare();
+    pthread_t heartbeat;
+    if(pthread_create(&heartbeat, NULL, dealWithHeartbeat, (void *)this) < 0)
+    {
+        cout << "Heartbeat thread error..." << endl;
+        user_wait();
+        exit(-1);
+    }
     while (1)
     {
         int events_counter = epoll_wait(epoll_fd, events, 16384, -1); //在接收到事件之前保持阻塞
@@ -156,7 +191,8 @@ void Server::Start() //服务端程序入口
                 if (LOGINMODE == 0)
                 {
                     cout << "Login success." << endl;
-                    onlinelist[clnt_sock] = acc.account;
+                    onlinelist[clnt_sock].first = acc.account;
+                    onlinelist[clnt_sock].second = 0;
                     cout << "Now there are " << onlinelist.size() << " user(s) online." << endl;
                     Onlineremind(clnt_sock);
                 }

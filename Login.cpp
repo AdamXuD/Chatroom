@@ -224,12 +224,12 @@ void Server::addonlinelist(int clnt_fd, char *acc)
 {
     if (onlinelist.count(clnt_fd) == 0)
     {
-        onlinelist[clnt_fd] = acc;
+        onlinelist[clnt_fd].first = acc;
     }
     else
     {
         onlinelist.erase(clnt_fd);
-        onlinelist[clnt_fd] = acc;
+        onlinelist[clnt_fd].first = acc;
     }
 }
 void Server::Onlineremind(int call)
@@ -268,7 +268,8 @@ void Server::Login(int call) //登录处理函数
                 strcpy(msg.content, "SUCCESS");
                 sendMsg(msg, call); //服务端反馈
                 cout << "Login success." << endl;
-                onlinelist[call] = acc.account;
+                onlinelist[call].first = acc.account;
+                onlinelist[call].second = 0;
                 cout << "Now there are " << onlinelist.size() << " user(s) online." << endl;
                 Onlineremind(call);
             }

@@ -18,12 +18,21 @@ void user_wait() //等待接口
 
 int sendMsg(const Msg msg, int fd) //发送消息用接口
 {
-    
+
 }
 
 int recvMsg(int fd, Msg &msg) //接收消息用接口
 {
+    
+}
 
+int sendHeartBeats(int fd, Msg &msg)
+{
+    memset(&msg, 0, sizeof(msg));
+    msg.type = HEARTBEAT;
+    int ret = sendMsg(msg, fd);
+    memset(&msg, 0, sizeof(msg));
+    return ret;
 }
 
 void addepollfd(int epoll_fd, int fd) //增加监听描述符

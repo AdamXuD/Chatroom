@@ -12,7 +12,8 @@ public:
     void Onlineremind(int call);               //上线提醒
     void Login(int call);                      //登录处理函数
     void Signup(int call);                     //注册处理函数
-    
+    static void *dealWithHeartbeat(void *ptr); //处理心跳包
+
     /*===========================================待完成部分===========================================*/
     /*好友列表部分*/
     void makeFriend();       //添加好友
@@ -44,7 +45,8 @@ public:
 private:
     int sock_fd;                 //socket产生的句柄
     int epoll_fd;                //epoll_create()返回的句柄
-    map<int, string> onlinelist; //用map记录当前在线用户和socket（一一对应）
+    int pid;                     //多线程监听心跳包
+    map<int, pair<string, int>> onlinelist; //用map记录当前socket和<在线用户名，还有心跳包参数>（一一对应）
     Msg msg;                     //消息
     Account acc;                 //账号信息
     MYSQL mysql;                 //mysql句柄
