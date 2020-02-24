@@ -30,11 +30,11 @@ public:
     void joinGroup();       //处理加入群聊请求
     void leaveGroup();      //处理离开群聊请求
     void deleteGroupMember(); //处理踢出群聊请求
-    void Grouptalk();         //处理用户群聊请求
+    void Grouptalk(int call);         //处理用户群聊请求
     /*群聊及其权限部分*/
 
     /*私聊部分*/
-    void Privatetalk(); //处理用户私聊请求
+    void Privatetalk(int call); //处理用户私聊请求
     /*私聊部分*/
     /*===========================================待完成部分===========================================*/
 

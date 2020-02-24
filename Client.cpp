@@ -140,73 +140,11 @@ void Client::Start() //客户端入口
                 string command = tmp;
                 if (command.find("private ") != string::npos) //如果指令是私聊的话
                 {
-                    string toUser;
-                    toUser = command.substr(sizeof("private ") - 1);
-                    cout << "你正在与 " << toUser << " 聊天：" << endl;
-                    msg.type = PIPE;
-                    strcpy(msg.toUser, toUser.c_str());
-                    memset(buf, 0, sizeof(buf));
-                    memcpy(buf, &msg, sizeof(msg));
-                    write(pipe_fd[1], buf, sizeof(buf));
-                    while (1)
-                    {
-                        string tmp;
-                        getline(cin, tmp, '\n');
-                        if (tmp == "_exit")
-                        {
-                            msg.type = PIPE;
-                            strcpy(msg.toUser, "\0");
-                            memset(buf, 0, sizeof(buf));
-                            memcpy(buf, &msg, sizeof(msg));
-                            write(pipe_fd[1], buf, sizeof(buf));
-                            break;
-                        }
-                        else
-                        {
-                            msg.type = PRIVTALK;
-                            strcpy(msg.fromUser, acc.account);
-                            strcpy(msg.toUser, toUser.c_str());
-                            strcpy(msg.content, tmp.c_str());
-                            memset(buf, 0, sizeof(buf));
-                            memcpy(buf, &msg, sizeof(msg));
-                            write(pipe_fd[1], buf, sizeof(buf));
-                        }
-                    }
+                    Privatetalk(command);
                 }
                 if (command.find("group ") != string::npos)
                 {
-                    string toGroup;
-                    toGroup = command.substr(sizeof("group ") - 1);
-                    cout << "你正在 " << toGroup << " 群内发言：" << endl;
-                    msg.type = PIPE;
-                    strcpy(msg.toUser, toGroup.c_str());
-                    memset(buf, 0, sizeof(buf));
-                    memcpy(buf, &msg, sizeof(msg));
-                    write(pipe_fd[1], buf, sizeof(buf));
-                    while (1)
-                    {
-                        string tmp;
-                        getline(cin, tmp, '\n');
-                        if (tmp == "_exit")
-                        {
-                            msg.type = PIPE;
-                            strcpy(msg.toUser, "\0");
-                            memset(buf, 0, sizeof(buf));
-                            memcpy(buf, &msg, sizeof(msg));
-                            write(pipe_fd[1], buf, sizeof(buf));
-                            break;
-                        }
-                        else
-                        {
-                            msg.type = GROUPTALK;
-                            strcpy(msg.fromUser, acc.account);
-                            strcpy(msg.toUser, toGroup.c_str());
-                            strcpy(msg.content, tmp.c_str());
-                            memset(buf, 0, sizeof(buf));
-                            memcpy(buf, &msg, sizeof(msg));
-                            write(pipe_fd[1], buf, sizeof(buf));
-                        }
-                    }
+                    Grouptalk(command);
                 }
                 if (command.find("group ", 0) == string::npos && command.find("private ", 0) == string::npos)
                 {

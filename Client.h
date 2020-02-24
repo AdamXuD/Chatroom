@@ -28,11 +28,11 @@ public:
     void joinGroup();            //加入群聊
     void leaveGroup();           //主动离开群聊
     void deleteGroupMember();    //踢人
-    void Grouptalk();            //处理用户群聊请求
+    void Grouptalk(string command);            //处理用户群聊请求
     /*群聊与相关权限部分*/
     
     /*私聊部分*/
-    void Privatetalk(); //处理用户私聊请求
+    void Privatetalk(string command); //处理用户私聊请求
     /*私聊部分*/
     ~Client();
 

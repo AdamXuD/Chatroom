@@ -123,13 +123,13 @@ void Server::dealWithMsg(int call)
     case PRIVTALK: //下面两个可能写不完 先写
     {
         cout << "A user sends a message to another user." << endl;
-        Privatetalk();
+        Privatetalk(call);
         break;
     }
     case GROUPTALK:
     {
         cout << "A user sends a message to a group" << endl;
-        Grouptalk();
+        Grouptalk(call);
         break;
     }
     case HEARTBEAT:
