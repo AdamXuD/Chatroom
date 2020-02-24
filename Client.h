@@ -18,21 +18,22 @@ public:
     void Start();
     /*好友列表部分*/
     void makeFriend(string command);                   //添加好友
-    void deleteFriend();                        //删除好友
+    void deleteFriend(string command);                 //删除好友
     void queryFriendList(); //请求好友列表
     void setSuki(string command);  //设为特别关心
     void setKirai(string command);          //拉黑名单
     /*好友列表部分*/
 
     /*群聊相关权限部分*/
-    void createGroupTalk();      //创建群聊
-    void setGroupAdmin();        //设置管理员
-    void joinGroup();            //加入群聊
-    void leaveGroup();           //主动离开群聊
-    void deleteGroupMember();    //踢人
+    void createGroupTalk(string command);      //创建群聊
+    void setGroupAdmin(string command, string toGroup); //设置管理员
+    void joinGroup(string command);                     //加入群聊
+    void leaveGroup(string Group);           //主动离开群聊
+    void deleteGroupMember(string command, string Group);  //踢人
     void Grouptalk(string command);            //处理用户群聊请求
+    void queryGroupMember(string Group);
     /*群聊与相关权限部分*/
-    
+
     /*私聊部分*/
     void Privatetalk(string command); //处理用户私聊请求
     /*私聊部分*/
@@ -45,7 +46,7 @@ private:
     int pid;                     //多进程时fork()返回进程号时用得到
     int epoll_fd;                //epoll二叉树根的句柄，真的玄妙
     bool isLogin;                //登陆状态
-    list<string> friendlist;  //用list类存储好友列表
+    map<string, int> friendlist;  //用list类存储好友列表
     struct Account acc; //账号信息
 protected:
 };

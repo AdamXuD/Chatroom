@@ -115,6 +115,38 @@ void Server::dealWithMsg(int call)
         {
             dealwithQuery();
         }
+        else if (strstr(msg.content, "SUKI") != NULL)
+        {
+            setSuki();
+        }
+        else if (strstr(msg.content, "KIRAI") != NULL)
+        {
+            setKirai();
+        }
+        else if (strstr(msg.content, "DELETEFRIEND") != NULL)
+        {
+            deleteFriend(msg.fromUser, msg.toUser);
+        }
+        else if (strstr(msg.content, "QUERYFRIENDLIST") != NULL)
+        {
+            sendFriendList(call);
+        }
+        else if (strstr(msg.content, "admin") != NULL)
+        {
+            setGroupAdmin();
+        }
+        else if (strstr(msg.content, "JOINGROUP") != NULL)
+        {
+            joinGroupQuery();
+        }
+        else if (strstr(msg.content, "LEAVEGROUP") != NULL)
+        {
+            leaveGroup();
+        }
+        else if (strstr(msg.content, "creategroup") != NULL)
+        {
+            createGroupTalk();
+        }
         else //还可以再添加其他的else 我想通过这种方式来实现组群加好友之类的操作 但是我觉得这样子效率有点低 你们看看有没有更好的方法
         {
             cout << "illegal message:" << msg.content << endl;
@@ -137,7 +169,7 @@ void Server::dealWithMsg(int call)
     case GROUPTALK:
     {
         cout << "A user sends a message to a group" << endl;
-        Grouptalk(call);
+        Grouptalk(msg, call);
         break;
     }
     case HEARTBEAT:

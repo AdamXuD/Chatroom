@@ -137,7 +137,7 @@ void Client::Start() //客户端入口
 {
     static struct epoll_event events[2];
     char buf[65535];
-    //Getfriendlist();
+    queryFriendList();
     Connect();
     if (LOGINMODE)
     {
@@ -185,11 +185,11 @@ void Client::Start() //客户端入口
                 {
                     Grouptalk(command);
                 }
-                else if(command.find("makefriend ") != string::npos)
+                else if (command.find("makefriend ") != string::npos)
                 {
                     makeFriend(command);
                 }
-                else if(command.find("accept ") != string::npos)
+                else if (command.find("accept ") != string::npos || command.find("refuse ") != string::npos)
                 {
                     dealwithQuery(command);
                 }
@@ -197,14 +197,26 @@ void Client::Start() //客户端入口
                 {
                     setSuki(command);
                 }
-                else if (command.find("kirai") != string::npos)
+                else if (command.find("kirai ") != string::npos)
                 {
-                    
+                    setKirai(command);
+                }
+                else if (command.find("queryfriendlist") != string::npos)
+                {
+                    queryFriendList();
+                }
+                else if (command.find("joingroup ") != string::npos)
+                {
+                    joinGroup(command);
+                }
+                else if(command.find("creategroup "))
+                {
+                    createGroupTalk(command);
                 }
                 else
                 {
                     cout << "指令有误，请检查指令格式！" << endl;
-                    }
+                }
                 command.clear();
             }
             else

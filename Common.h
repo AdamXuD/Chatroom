@@ -16,7 +16,6 @@
 #include <mysql/mysql.h>
 #include <map>
 #include <pthread.h>
-#include <list>
 //#include<ncurses.h>  //用户界面库
 #define LOGINMODE 1 //默认关闭登录模式
 
