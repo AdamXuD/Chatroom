@@ -11,6 +11,7 @@ public:
     void Login(Account acc); //登录
     void Signup(); //注册
     void fileLogin(); //本地凭据登录
+    static void *sendHeartBeats(void *pointer); //定时发送心跳包
 
     void Start();
     /*好友列表部分*/
@@ -34,14 +35,15 @@ public:
     void Privatetalk(); //处理用户私聊请求
     /*私聊部分*/
     ~Client();
+
+    int sock_fd; //要连接的服务器句柄（句柄应该是这个意思吧
+    struct Msg msg; //消息
 private:
     int pipe_fd[2];              //读写管道pipe()……
     int pid;                     //多进程时fork()返回进程号时用得到
-    int sock_fd;                 //要连接的服务器句柄（句柄应该是这个意思吧
     int epoll_fd;                //epoll二叉树根的句柄，真的玄妙
     bool isLogin;                //登陆状态
     map<int, string> onlinelist; //用map记录在线列表（包含名称和）（一一对应）
-    struct Msg msg;              //消息
     struct Account acc;          //账号信息
 protected:
 };

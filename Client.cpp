@@ -75,6 +75,25 @@ void Client::Connect() //连接服务器用函数
     cout << "Connected." << endl;
     user_wait();
 }
+void *HeartBeat(void *pointer)
+{
+    int count = 0;
+    Client *ptr = (Client *)pointer;
+    while (count < 3)
+    {
+        if (sendHeartBeats(ptr->sock_fd, ptr->msg) < 0)
+        {
+            cout << "与服务器断开连接，正在尝试第 " << count + 1 << " 次重连..." << endl;
+            count++;
+        }
+        sleep(3);
+    }
+    if (count >= 3)
+    {
+        cout << "重连失败，程序即将退出！" << endl;
+        exit(-1);
+    }
+}
 void Client::Start() //客户端入口
 {
     static struct epoll_event events[2];
@@ -92,6 +111,13 @@ void Client::Start() //客户端入口
         getline(cin, tmp, '\n'); //非登录模式下获取用户名
         strcpy(acc.account, tmp.c_str());
         isLogin = true;
+    }
+    pthread_t heartbeat;  //建立新进程
+    if(pthread_create(&heartbeat, NULL, HeartBeat, (void *)this) < 0) //创建一个子进程用来发送心跳包 并维持连接状态（传递参数为该客户端对象指针）
+    {
+        cout << "Heartbeat thread error..." << endl;
+        user_wait();
+        exit(-1);
     }
     pid = fork();
     if (pid < 0)
