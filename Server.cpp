@@ -135,6 +135,7 @@ void Server::dealWithMsg(int call)
     case HEARTBEAT:
     {
         onlinelist[call].second = 0;
+        break;
     }
     }
 }
