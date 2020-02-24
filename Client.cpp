@@ -94,6 +94,45 @@ void *HeartBeat(void *pointer)
         exit(-1);
     }
 }
+
+void Client::dealwithmsg(char *Target)
+{
+    switch (msg.type)
+    {
+    case ALL:
+    {
+        cout << "\033[31m[广播]\033[0m";
+        cout << msg.fromUser << " 说：" << msg.content << endl;
+        break;
+    }
+    case PRIVTALK:
+    {
+        cout << "\033[32m[私聊]\033[0m";
+        if (strstr(msg.fromUser, Target) != NULL)
+        {
+            cout << "\033[33m>" << msg.fromUser << " 说：" << msg.content << "\033[0m" << endl; //当指定了聊天对象时 聊天对象消息高亮
+        }
+        else
+        {
+            cout << msg.fromUser << " 说：" << msg.content << endl;
+        }
+        break;
+    }
+    case GROUPTALK:
+    {
+        cout << "\033[34m[群聊]\033[0m";
+        if (strstr(msg.fromUser, Target) != NULL)
+        {
+            cout << "\033[33m>" << msg.fromUser << " 说：" << msg.content << "\033[0m" << endl; //当指定了聊天对象时 聊天对象消息高亮
+        }
+        else
+        {
+            cout << msg.fromUser << " 说：" << msg.content << endl;
+        }
+        break;
+    }
+    }
+}
 void Client::Start() //客户端入口
 {
     static struct epoll_event events[2];
@@ -112,8 +151,8 @@ void Client::Start() //客户端入口
         strcpy(acc.account, tmp.c_str());
         isLogin = true;
     }
-    pthread_t heartbeat;  //建立新进程
-    if(pthread_create(&heartbeat, NULL, HeartBeat, (void *)this) < 0) //创建一个子进程用来发送心跳包 并维持连接状态（传递参数为该客户端对象指针）
+    pthread_t heartbeat;                                               //建立新进程
+    if (pthread_create(&heartbeat, NULL, HeartBeat, (void *)this) < 0) //创建一个子进程用来发送心跳包 并维持连接状态（传递参数为该客户端对象指针）
     {
         cout << "Heartbeat thread error..." << endl;
         user_wait();
@@ -136,20 +175,36 @@ void Client::Start() //客户端入口
             /*判断指令类型*/
             if (*tmp.begin() == '/') //指令语意处理
             {
-                tmp.erase(0, 1);                          //吃掉一个斜杠
+                tmp.erase(0, 1); //吃掉一个斜杠
                 string command = tmp;
                 if (command.find("private ") != string::npos) //如果指令是私聊的话
                 {
                     Privatetalk(command);
                 }
-                if (command.find("group ") != string::npos)
+                else if (command.find("group ") != string::npos)
                 {
                     Grouptalk(command);
                 }
-                if (command.find("group ", 0) == string::npos && command.find("private ", 0) == string::npos)
+                else if(command.find("makefriend ") != string::npos)
+                {
+                    makeFriend(command);
+                }
+                else if(command.find("accept ") != string::npos)
+                {
+                    dealwithQuery(command);
+                }
+                else if (command.find("suki ") != string::npos)
+                {
+                    setSuki(command);
+                }
+                else if (command.find("kirai") != string::npos)
+                {
+                    
+                }
+                else
                 {
                     cout << "指令有误，请检查指令格式！" << endl;
-                }
+                    }
                 command.clear();
             }
             else
@@ -178,16 +233,7 @@ void Client::Start() //客户端入口
                 if (events[i].data.fd == sock_fd) //epoll响应来自服务器标识符时
                 {
                     recvMsg(sock_fd, msg);
-                    char tmpmsg[5120] = {0};
-                    if (msg.fromUser == Target)
-                    {
-                        sprintf(tmpmsg, "\033[92m>%s 说：%s\033[0m", msg.fromUser, msg.content); //当指定了聊天对象时 聊天对象消息高亮
-                    }
-                    else
-                    {
-                        sprintf(tmpmsg, ">%s 说：%s", msg.fromUser, msg.content); //没有指定或者非当前聊天对象发来消息时标准显示
-                    }
-                    cout << tmpmsg << endl;
+                    dealwithmsg(Target);
                 }
                 else //管道标识符响应时
                 {

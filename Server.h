@@ -13,11 +13,13 @@ public:
     void Login(int call);                      //登录处理函数
     void Signup(int call);                     //注册处理函数
     static void *dealWithHeartbeat(void *ptr); //处理心跳包
+    void dealwithQuery();
+    void addFriend(char *account, char *whichfriend);
 
     /*===========================================待完成部分===========================================*/
     /*好友列表部分*/
-    void makeFriend();       //添加好友
-    void deleteFriend();     //删除好友
+    void makeFriendQuery();  //添加好友
+    void deleteFriend(char *account, char *whichfriend); //删除好友
     void setSuki();          //设为特别关心
     void setKirai();         //拉黑名单
     void createFriendList(); //注册完成时创建该用户的好友列表
@@ -34,7 +36,7 @@ public:
     /*群聊及其权限部分*/
 
     /*私聊部分*/
-    void Privatetalk(int call); //处理用户私聊请求
+    void Privatetalk(Msg msg); //处理用户私聊请求
     /*私聊部分*/
     /*===========================================待完成部分===========================================*/
 

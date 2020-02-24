@@ -12,14 +12,16 @@ public:
     void Signup(); //注册
     void fileLogin(); //本地凭据登录
     static void *sendHeartBeats(void *pointer); //定时发送心跳包
+    void dealwithmsg(char *Target);
+    void dealwithQuery(string command);
 
     void Start();
     /*好友列表部分*/
-    void makeFriend();                          //添加好友
+    void makeFriend(string command);                   //添加好友
     void deleteFriend();                        //删除好友
     void queryFriendList(); //请求好友列表
-    void setSuki();           //设为特别关心
-    void setKirai();          //拉黑名单
+    void setSuki(string command);  //设为特别关心
+    void setKirai(string command);          //拉黑名单
     /*好友列表部分*/
 
     /*群聊相关权限部分*/
@@ -43,7 +45,7 @@ private:
     int pid;                     //多进程时fork()返回进程号时用得到
     int epoll_fd;                //epoll二叉树根的句柄，真的玄妙
     bool isLogin;                //登陆状态
-    map<int, string> onlinelist; //用map记录在线列表（包含名称和）（一一对应）
-    struct Account acc;          //账号信息
+    list<string> friendlist;  //用list类存储好友列表
+    struct Account acc; //账号信息
 protected:
 };

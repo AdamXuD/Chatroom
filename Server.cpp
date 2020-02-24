@@ -107,6 +107,14 @@ void Server::dealWithMsg(int call)
         {
             Signup(call);
         }
+        else if (strstr(msg.content, "MAKEFRIEND") != NULL)
+        {
+            makeFriendQuery();
+        }
+        else if (strstr(msg.content, "refuse") != NULL || strstr(msg.content, "accept") != NULL)
+        {
+            dealwithQuery();
+        }
         else //还可以再添加其他的else 我想通过这种方式来实现组群加好友之类的操作 但是我觉得这样子效率有点低 你们看看有没有更好的方法
         {
             cout << "illegal message:" << msg.content << endl;
@@ -123,7 +131,7 @@ void Server::dealWithMsg(int call)
     case PRIVTALK: //下面两个可能写不完 先写
     {
         cout << "A user sends a message to another user." << endl;
-        Privatetalk(call);
+        Privatetalk(msg);
         break;
     }
     case GROUPTALK:
@@ -134,12 +142,12 @@ void Server::dealWithMsg(int call)
     }
     case HEARTBEAT:
     {
-        onlinelist[call].second = 0;  //每收到一次心跳包心跳包参数置零
+        onlinelist[call].second = 0; //每收到一次心跳包心跳包参数置零
         break;
     }
     }
 }
-void* Server::dealWithHeartbeat(void *pointer)
+void *Server::dealWithHeartbeat(void *pointer)
 {
     cout << "Heartbeat thread has been ready." << endl;
     Server *ptr = (Server *)pointer;
@@ -148,18 +156,18 @@ void* Server::dealWithHeartbeat(void *pointer)
         map<int, pair<string, int>>::iterator i = ptr->onlinelist.begin();
         for (; i != ptr->onlinelist.end(); i++) //遍历在线列表
         {
-            if (i->second.second == 5)  //若存在心跳包参数为5的
+            if (i->second.second == 5) //若存在心跳包参数为5的
             {
-                cout << i->second.first << "has been offline." << endl;  //丢人 直接踢下线
+                cout << i->second.first << "has been offline." << endl; //丢人 直接踢下线
                 close(i->first);
                 ptr->onlinelist.erase(i);
             }
-            else if (i->second.second < 5)  //若心跳包参数小于5
+            else if (i->second.second < 5) //若心跳包参数小于5
             {
-                i->second.second += 1;  //心跳包参数+1
+                i->second.second += 1; //心跳包参数+1
             }
         }
-        sleep(3);  //每三秒执行一次该循环
+        sleep(3); //每三秒执行一次该循环
     }
     return 0;
 }
@@ -167,8 +175,8 @@ void Server::Start() //服务端程序入口
 {
     static struct epoll_event events[16384]; //设置标识符监听队列
     Prepare();
-    pthread_t heartbeat;  //新建立一个pthread
-    if(pthread_create(&heartbeat, NULL, dealWithHeartbeat, (void *)this) < 0)  //创建一个子进程处理心跳包（传递参数为该服务器对象指针）
+    pthread_t heartbeat;                                                       //新建立一个pthread
+    if (pthread_create(&heartbeat, NULL, dealWithHeartbeat, (void *)this) < 0) //创建一个子进程处理心跳包（传递参数为该服务器对象指针）
     {
         cout << "Heartbeat thread error..." << endl;
         user_wait();

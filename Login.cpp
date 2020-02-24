@@ -325,6 +325,7 @@ void Server::Signup(int call)
         strcpy(msg.content, "SUCCESS");
         sendMsg(msg, call); //服务端反馈
         cout << "Signup success." << endl;
+        createFriendList();
     }
     else
     {

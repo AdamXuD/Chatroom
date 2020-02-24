@@ -44,6 +44,15 @@ int recvMsg(int fd, Msg &msg) //接收消息用接口
     return ret;
 }
 
+int sendHeartBeats(int fd, Msg &msg)
+{
+    memset(&msg, 0, sizeof(msg));
+    msg.type = HEARTBEAT;
+    int ret = sendMsg(msg, fd);
+    memset(&msg, 0, sizeof(msg));
+    return ret;
+}
+
 void addepollfd(int epoll_fd, int fd) //增加监听描述符
 {
     struct epoll_event tmp;         //设置临时变量用于存储描述符属性

@@ -118,15 +118,40 @@ void Server::Grouptalk(int call) //处理用户群聊请求
 }
 /*群聊及其权限部分*/
 /*私聊部分*/
-void Server::Privatetalk(int call) //处理用户私聊请求
+void Server::Privatetalk(Msg msg) //处理用户私聊请求
 {
     map<int, pair<string, int>>::iterator i;
-
-    for (i = onlinelist.begin(); i != onlinelist.end();i++)
+    int count = 0;
+    for (i = onlinelist.begin(); i != onlinelist.end(); i++)
     {
-        if(i->second.first == msg.toUser)
+        if (i->second.first == msg.toUser)
         {
             sendMsg(msg, i->first);
+        }
+        else
+        {
+            count++;
+        }
+    }
+    if (count == onlinelist.size())
+    {
+        cout << "No hits found." << endl;
+        /*发送失败反馈*/
+        if(msg.fromUser != "Admin")
+        {
+        char tmpacc[32], tmpcon[5120];
+        sprintf(tmpcon, "发向用户 %s 的 “%s” 发送失败！可能是用户名错误或者对方不在线！", msg.toUser, msg.content);
+        strcpy(tmpacc, msg.fromUser);
+        memset(&msg, 0, sizeof(msg));
+        msg.type = PRIVTALK;
+        strcpy(msg.fromUser, "Admin");
+        strcpy(msg.toUser, tmpacc);
+        strcpy(msg.content, tmpcon);
+        Privatetalk(msg);
+        }
+        else
+        {
+            cout << "Feedback error;" << endl;
         }
     }
 }
