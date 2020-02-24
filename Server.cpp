@@ -134,7 +134,7 @@ void Server::dealWithMsg(int call)
     }
     case HEARTBEAT:
     {
-        onlinelist[call].second = 0;
+        onlinelist[call].second = 0;  //每收到一次心跳包心跳包参数置零
         break;
     }
     }
@@ -146,20 +146,20 @@ void* Server::dealWithHeartbeat(void *pointer)
     while (1)
     {
         map<int, pair<string, int>>::iterator i = ptr->onlinelist.begin();
-        for (; i != ptr->onlinelist.end(); i++)
+        for (; i != ptr->onlinelist.end(); i++) //遍历在线列表
         {
-            if (i->second.second == 5)
+            if (i->second.second == 5)  //若存在心跳包参数为5的
             {
-                cout << i->second.first << "has been offline." << endl;
+                cout << i->second.first << "has been offline." << endl;  //丢人 直接踢下线
                 close(i->first);
                 ptr->onlinelist.erase(i);
             }
-            else if (i->second.second < 5)
+            else if (i->second.second < 5)  //若心跳包参数小于5
             {
-                i->second.second += 1;
+                i->second.second += 1;  //心跳包参数+1
             }
         }
-        sleep(3);
+        sleep(3);  //每三秒执行一次该循环
     }
     return 0;
 }
@@ -167,8 +167,8 @@ void Server::Start() //服务端程序入口
 {
     static struct epoll_event events[16384]; //设置标识符监听队列
     Prepare();
-    pthread_t heartbeat;
-    if(pthread_create(&heartbeat, NULL, dealWithHeartbeat, (void *)this) < 0)
+    pthread_t heartbeat;  //新建立一个pthread
+    if(pthread_create(&heartbeat, NULL, dealWithHeartbeat, (void *)this) < 0)  //创建一个子进程处理心跳包（传递参数为该服务器对象指针）
     {
         cout << "Heartbeat thread error..." << endl;
         user_wait();
@@ -192,8 +192,7 @@ void Server::Start() //服务端程序入口
                 if (LOGINMODE == 0)
                 {
                     cout << "Login success." << endl;
-                    onlinelist[clnt_sock].first = acc.account;
-                    onlinelist[clnt_sock].second = 0;
+                    addonlinelist(call, acc.account);
                     cout << "Now there are " << onlinelist.size() << " user(s) online." << endl;
                     Onlineremind(clnt_sock);
                 }

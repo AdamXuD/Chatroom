@@ -45,7 +45,6 @@ public:
 private:
     int sock_fd;                 //socket产生的句柄
     int epoll_fd;                //epoll_create()返回的句柄
-    int pid;                     //多线程监听心跳包
     map<int, pair<string, int>> onlinelist; //用map记录当前socket和<在线用户名，还有心跳包参数>（一一对应）
     Msg msg;                     //消息
     Account acc;                 //账号信息

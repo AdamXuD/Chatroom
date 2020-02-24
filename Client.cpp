@@ -112,8 +112,8 @@ void Client::Start() //客户端入口
         strcpy(acc.account, tmp.c_str());
         isLogin = true;
     }
-    pthread_t heartbeat;
-    if(pthread_create(&heartbeat, NULL, HeartBeat, (void *)this) < 0)
+    pthread_t heartbeat;  //建立新进程
+    if(pthread_create(&heartbeat, NULL, HeartBeat, (void *)this) < 0) //创建一个子进程用来发送心跳包 并维持连接状态（传递参数为该客户端对象指针）
     {
         cout << "Heartbeat thread error..." << endl;
         user_wait();
