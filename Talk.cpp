@@ -247,9 +247,9 @@ void Server::SendGroupMember(int call)
     memcpy(buf, memberList, sizeof(memberList));
     send(call, buf, sizeof(buf), 0);
 }
-void Server::sendAdminMsg(Msg message, bool sw_query, char *fromUser = "\0")
+void Server::sendAdminMsg(Msg message, bool sw_query, char *fromUser)
 {
-    char query[1024], memberlist[1536][32] = {0};
+    char query[5120], memberlist[1536][32] = {0};
     sprintf(query, "select account from group_%s where flag = 1 or flag = 2;", msg.toUser);
     if (mysql_query(&mysql, query) == 0)
     {
@@ -506,7 +506,7 @@ void Server::deleteGroupMember() //处理踢出群聊请求
         Privatetalk(msg);
     }
 }
-void Server::Grouptalk(Msg message, int call = -1) //处理用户群聊请求
+void Server::Grouptalk(Msg message, int call) //处理用户群聊请求
 {
     char query[1024], memberlist[1536][32] = {0};
     sprintf(query, "select account from group_%s;", msg.toUser);
@@ -563,7 +563,7 @@ void Server::Privatetalk(Msg msg) //处理用户私聊请求
     {
         cout << "No hits found." << endl;
         /*发送失败反馈*/
-        if (msg.fromUser != "Admin")
+        if (strstr(msg.fromUser, "Admin") == NULL)
         {
             char tmpacc[32], tmpcon[5120];
             sprintf(tmpcon, "发向用户 %s 的 “%s” 发送失败！可能是用户名错误或者对方不在线！", msg.toUser, msg.content);

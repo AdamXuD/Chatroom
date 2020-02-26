@@ -6,7 +6,7 @@ void Client::makeFriend(string command) //添加好友
 {
     memset(&msg, 0, sizeof(msg));
     msg.type = COMMAND;
-    strcpy(msg.toUser, command.substr(sizeof("private ") - 1).c_str());
+    strcpy(msg.toUser, command.substr(sizeof("makefriend ") - 1).c_str());
     strcpy(msg.fromUser, acc.account);
     strcpy(msg.content, "MAKEFRIEND");
     if (sendMsg(msg, sock_fd) < 0)
@@ -118,11 +118,15 @@ void Server::makeFriendQuery() //添加好友
             tmp.type = PRIVTALK;
             strcpy(tmp.fromUser, "Admin");
             strcpy(tmp.toUser, msg.toUser);
-            sprintf(tmp.content, "用户\033[33m %s \033[0m请求添加你为好友！", msg.fromUser);
+            sprintf(tmp.content, "用户 %s 请求添加你为好友！", msg.fromUser);
             sprintf(query, "insert into %s_querybox values (null, '%s', '%s', '%s', '%s');", msg.toUser, "FRIEND", msg.fromUser, msg.toUser, tmp.content);
             if (mysql_query(&mysql, query) == 0)
             {
                 Privatetalk(tmp);
+            }
+            else
+            {
+                cout << mysql_error(&mysql) << endl;
             }
         }
         else
@@ -252,6 +256,16 @@ void Server::createFriendList() //注册完成时创建该用户的好友列表
         cout << "New friend list is been created." << endl;
     }
 }
+void Server::createQuerybox() //注册完成时创建该用户的好友列表
+{
+    char query[4096];
+    sprintf(query, "create table %s_querybox like querybox;", acc.account);
+    if (mysql_query(&mysql, query) == 0)
+    {
+        cout << "New querybox is been created." << endl;
+    }
+}
+
 void Server::sendFriendList(int call) //发送好友列表（登录后马上调用，以获取该用户的好友列表）
 {
     char query[1024], buf[65535], friendList[1536][32] = {0};

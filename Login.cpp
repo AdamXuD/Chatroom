@@ -326,6 +326,7 @@ void Server::Signup(int call)
         sendMsg(msg, call); //服务端反馈
         cout << "Signup success." << endl;
         createFriendList();
+        createQuerybox();
     }
     else
     {

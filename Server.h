@@ -25,10 +25,12 @@ public:
     void setKirai();         //拉黑名单
     void createFriendList(); //注册完成时创建该用户的好友列表
     void sendFriendList(int call);   //发送好友列表（登录后马上调用，以获取该用户的好友列表）
+    void createQuerybox();
+
     /*好友列表部分*/
 
     /*群聊及其权限部分*/
-    void sendAdminMsg(Msg message, bool sw_query, char *fromUser = "\0");
+    void sendAdminMsg(Msg message, bool sw_query, char *fromUser);
     void SendGroupMember(int call);
 
     void createGroupTalk(); //创建群聊
