@@ -71,6 +71,7 @@ void Server::Prepare()
         {
             cout << "Success to connect database" << endl;
         }
+        mysql_set_character_set(&mysql, "utf8");//解决中文乱码问题
     }
     /*数据库初始化部分结束*/
     user_wait();
