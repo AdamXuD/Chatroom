@@ -16,14 +16,34 @@ void user_wait() //等待接口
     clear();
 }
 
+void input(char *ptr, const char *tips) //输入框
+{
+    if (tips != nullptr)
+    {
+        cout << tips << endl;
+    }
+    cin.getline(ptr, 65535);
+}
+
+void input(int &num, const char *tips)
+{
+    char tmp[10];
+    if (tips != nullptr)
+    {
+        cout << tips << endl;
+    }
+    cin.getline(tmp, 10);
+    num = atoi(tmp);
+}
+
 int sendMsg(const Msg msg, int fd) //发送消息用接口
 {
-
+    
 }
 
 int recvMsg(int fd, Msg &msg) //接收消息用接口
 {
-    
+
 }
 
 int sendHeartBeats(int fd, Msg &msg)

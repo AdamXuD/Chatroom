@@ -61,7 +61,7 @@ void Server::Prepare()
     if (LOGINMODE)
     {
         mysql_init(&mysql);
-        if (!mysql_real_connect(&mysql, "127.0.0.1", "root", "root", "Chatroom", 3306, NULL, 0))
+        if (!mysql_real_connect(&mysql, "127.0.0.1", "root", "root", "chatroom", 3306, NULL, 0))
         {
             cout << "Failed to connect to database: Error:" << mysql_error(&mysql) << endl;
             user_wait();
