@@ -13,16 +13,8 @@ void Client::Connect() //连接服务器用函数
     clear();
     char ip[17] = {0};
     int port;
-    cout << "请输入服务器IP：" << endl;
-    cin.clear();
-    cin.sync();
-    cin >> ip;
-    getchar();
-    cout << "请输入端口号：" << endl;
-    cin.clear();
-    cin.sync();
-    cin >> port;
-    getchar();
+    input(ip, "请输入服务器IP：");
+    input(port, "请输入端口号：");
     sock_fd = socket(AF_INET, SOCK_STREAM, 0); //socket部分开始
     if (sock_fd < 0)
     {
@@ -145,10 +137,8 @@ void Client::Start() //客户端入口
     }
     else
     {
-        string tmp;
         cout << "请输入昵称：" << endl;
-        getline(cin, tmp, '\n'); //非登录模式下获取用户名
-        strcpy(acc.account, tmp.c_str());
+        cin.getline(acc.account, 32); //非登录模式下获取用户名
         isLogin = true;
     }
     pthread_t heartbeat;                                               //建立新进程

@@ -11,10 +11,7 @@ void Client::Login() //表登录接口
     cout << "2.我还没有聊天室账户，希望注册。" << endl;
     while (1)
     {
-        cin.clear();
-        cin.sync();
-        cin >> i;
-        getchar();
+        input(i);
         if (i == 1 || i == 2)
         {
             switch (i)
@@ -22,11 +19,7 @@ void Client::Login() //表登录接口
             case 1:
                 clear();
                 char password[14];
-                cout << "请输入用户名：" << endl;
-                cin.clear();
-                cin.sync();
-                cin >> this->acc.account;
-                getchar();
+                input(this->acc.account, "请输入用户名：");
                 strcpy(password, getpass("请输入密码："));
                 strcpy(this->acc.pwd, crypt(password, password));
                 acc.flag = true;
@@ -66,20 +59,15 @@ void Client::Login(Account acc) //重载里登录接口
             cout << "是否在本地保存登陆凭据？" << endl;
             cout << "1.是" << endl;
             cout << "2.否" << endl;
-            cin.clear();
-            cin.sync();
-            cin >> i;
-            getchar();
+            input(i);
             switch (i)
             {
             case 1:
             {
                 fstream userinfo;
                 userinfo.open("userinfo", ios::out);
-                userinfo << "ACC:";
-                userinfo << acc.account << endl;
-                userinfo << "PWD:";
-                userinfo << acc.pwd;
+                userinfo << "ACC:" << acc.account << endl;
+                userinfo << "PWD:" << acc.pwd;
                 userinfo.close();
                 break;
             }
@@ -101,15 +89,11 @@ void Client::Login(Account acc) //重载里登录接口
 void Client::Signup()
 {
     clear();
-    char nickname[20];
+    char nickname[32];
     char password1[32];
     char password2[32];
     struct Account tmp;
-    cout << "请输入昵称：" << endl;
-    cin.clear();
-    cin.sync();
-    cin >> nickname;
-    getchar();
+    input(nickname, "请输入昵称：");
     while (1)
     {
         strcpy(password1, getpass("请输入密码："));
@@ -180,10 +164,7 @@ void Client::fileLogin()
                 cout << "1.是" << endl;
                 cout << "2.否" << endl;
                 int i;
-                cin.clear();
-                cin.sync();
-                cin >> i;
-                getchar();
+                input(i);
                 if (i == 1 || i == 2)
                 {
                     switch (i)

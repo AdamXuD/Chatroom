@@ -45,6 +45,9 @@ struct Account //账户类
 
 void clear();                       //清屏函数
 void user_wait();                   //用户等待
+void input(char *ptr, const char *tips = nullptr); //输入框
+void input(int &ptr, const char *tips = nullptr); //输入框
+
 int sendMsg(const Msg msg, int fd); //发送消息用接口
 int recvMsg(int fd, Msg &msg);      //接收消息用接口
 int sendHeartBeats(int fd, Msg &msg);//心跳包发送
