@@ -7,7 +7,7 @@ public:
     Server();
     void Prepare();
 
-    void addonlinelist(int clnt_fd, char *acc);//储存在线用户
+    void addonlinelist(int clnt_fd, char *acc = nullptr);//储存在线用户
     void BroadcastMsg(int call);               //群发
     void Onlineremind(int call);               //上线提醒
     void Login(int call);                      //登录处理函数
@@ -23,9 +23,9 @@ public:
     void deleteFriend(char *account, char *whichfriend); //删除好友
     void setSuki();          //设为特别关心
     void setKirai();         //拉黑名单
-    void createFriendList(); //注册完成时创建该用户的好友列表
+    void createFriendList(char *account); //注册完成时创建该用户的好友列表
     void sendFriendList(int call);   //发送好友列表（登录后马上调用，以获取该用户的好友列表）
-    void createQuerybox();
+    void createQuerybox(char *account);
 
     /*好友列表部分*/
 
@@ -56,7 +56,6 @@ private:
     int epoll_fd;                //epoll_create()返回的句柄
     map<int, pair<string, int>> onlinelist; //用map记录当前socket和<在线用户名，还有心跳包参数>（一一对应）
     Msg msg;                     //消息
-    Account acc;                 //账号信息
     MYSQL mysql;                 //mysql句柄
 protected:
 };

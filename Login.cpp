@@ -22,7 +22,6 @@ void Client::Login() //表登录接口
                 input(this->acc.account, "请输入用户名：");
                 strcpy(password, getpass("请输入密码："));
                 strcpy(this->acc.pwd, crypt(password, password));
-                acc.flag = true;
                 Login(this->acc);
                 break;
             case 2:
@@ -39,19 +38,15 @@ void Client::Login() //表登录接口
 }
 void Client::Login(Account acc) //重载里登录接口
 {
-    char buf[65535];
     clear();
     cout << "登录中……" << endl;
-    memset(&msg, 0, sizeof(msg));
-    msg.type = COMMAND;
-    strcpy(msg.content, "SIGNIN");
+    setMsg(msg, COMMAND, nullptr, nullptr, "SIGNIN");
     if (sendMsg(msg, sock_fd) > 0) //发送登入请求
     {
-        memset(buf, 0, sizeof(buf));
-        memcpy(buf, &acc, sizeof(acc));
-        send(sock_fd, buf, sizeof(buf), 0);
+        sendMsg(acc, sock_fd);
+        sleep(3);
         recvMsg(sock_fd, msg); //这句有bug
-        if (strstr(msg.content, "SUCCESS") != NULL)
+        if (strEqual(msg.content, "SUCCESS"))
         {
             int i;
             isLogin = true;
@@ -77,11 +72,12 @@ void Client::Login(Account acc) //重载里登录接口
         }
         else
         {
-            cout << msg.content << endl;
             cout << "登录失败，请检查账号或密码是否正确！" << endl;
-            user_wait();
-            Login();
         }
+    }
+    else
+    {
+        cout << "请求失败，请检查网络设置！" << endl;
     }
     user_wait();
     clear();
@@ -89,48 +85,34 @@ void Client::Login(Account acc) //重载里登录接口
 void Client::Signup()
 {
     clear();
-    char nickname[32];
     char password1[32];
     char password2[32];
-    struct Account tmp;
-    input(nickname, "请输入昵称：");
+    input(acc.account, "请输入昵称：");
     while (1)
     {
         strcpy(password1, getpass("请输入密码："));
         strcpy(password2, getpass("请再次输入密码："));
         if (strcmp(password1, password2) == 0)
         {
-            strcpy(tmp.account, nickname);
-            strcpy(tmp.pwd, crypt(password1, password1));
-            tmp.flag = true;
-            char buf[65535];
+            strcpy(acc.pwd, crypt(password1, password1));
             cout << "注册中……" << endl;
-            memset(&msg, 0, sizeof(msg));
-            msg.type = COMMAND;
-            strcpy(msg.content, "SIGNUP");
+            setMsg(msg, COMMAND, nullptr, nullptr, "SIGNUP");
             if (sendMsg(msg, sock_fd) > 0) //发送注册请求
             {
-                memset(buf, 0, sizeof(buf));
-                memcpy(buf, &tmp, sizeof(tmp));
-                send(sock_fd, buf, sizeof(buf), 0);
+                sendMsg(acc, sock_fd);
+                sleep(3);
                 recvMsg(sock_fd, msg);
-                if (strstr(msg.content, "SUCCESS") != NULL)
+                if (strEqual(msg.content, "SUCCESS"))
                 {
-                    memset(buf, 0, sizeof(buf));
-                    memset(&acc, 0, sizeof(acc));
-                    strcpy(acc.account, tmp.account);
-                    strcpy(acc.pwd, tmp.pwd);
                     cout << "注册成功！" << endl;
                     cout << "您的用户名是：" << acc.account << endl;
                     cout << "您的用户名是您登入聊天室的唯一凭据，请妥善保管您的用户名与密码！" << endl;
                     user_wait();
-                    acc.flag = true;
                     Login(acc);
                 }
                 else
                 {
-                    cout << msg.content << endl;
-                    cout << "请求提交失败，请稍后重试……" << endl;
+                    cout << "请求提交失败，请检查网络设置……" << endl;
                     user_wait();
                 }
             }
@@ -180,7 +162,6 @@ void Client::fileLogin()
                         getline(userinfo, tmp);
                         tmp.erase(0, 4);
                         strcpy(acc.pwd, tmp.c_str());
-                        acc.flag = true;
                         Login(acc);
                         break;
                     }
@@ -205,37 +186,35 @@ void Server::addonlinelist(int clnt_fd, char *acc)
 {
     if (onlinelist.count(clnt_fd) == 0)
     {
-        onlinelist[clnt_fd].first = acc;
+        if (acc != nullptr)
+        {
+            onlinelist[clnt_fd].first = acc;
+        }
         onlinelist[clnt_fd].second = 0;
     }
     else
     {
         onlinelist.erase(clnt_fd);
-        onlinelist[clnt_fd].first = acc;
+        if (acc != nullptr)
+        {
+
+            onlinelist[clnt_fd].first = acc;
+        }
         onlinelist[clnt_fd].second = 0;
     }
 }
 void Server::Onlineremind(int call)
 {
-    memset(&msg, 0, sizeof(msg));
-    msg.type = ALL;
-    strcpy(msg.fromUser, "Admin");
-    strcpy(msg.content, "Someone is Online.");
+    setMsg(msg, ALL, ADMIN, nullptr, "Someone is Online.");
     BroadcastMsg(call);
 }
 void Server::Login(int call) //登录处理函数
 {
+    Account tmp;
     cout << "A connector is trying to login." << endl;
-    char buf[65535];
     char query[1024];
-    memset(buf, 0, sizeof(buf));
-    memset(&acc, 0, sizeof(acc));
-    while (acc.flag == 0)
-    {
-        recv(call, buf, 65535, 0);
-        memcpy(&acc, buf, sizeof(acc));
-    }
-    sprintf(query, "select account, pwd from userinfo where account='%s';", acc.account);
+    recvMsg(call, tmp);
+    sprintf(query, "select account, pwd from userinfo where account='%s';", tmp.account);
     if (mysql_query(&mysql, query) == 0)
     {
         MYSQL_RES res;
@@ -244,77 +223,54 @@ void Server::Login(int call) //登录处理函数
         row = mysql_fetch_row(&res);
         if (row != NULL)
         {
-            if (strstr(acc.pwd, row[1]) != NULL)
+            if (strEqual(tmp.pwd, row[1]))
             {
-                memset(&msg, 0, sizeof(msg));
-                msg.type = COMMAND;
-                strcpy(msg.content, "SUCCESS");
+                setMsg(msg, COMMAND, nullptr, nullptr, "SUCCESS");
                 sendMsg(msg, call); //服务端反馈
                 cout << "Login success." << endl;
-                addonlinelist(call, acc.account);
+                addonlinelist(call, tmp.account);
                 cout << "Now there are " << onlinelist.size() << " user(s) online." << endl;
                 Onlineremind(call);
             }
             else
             {
-                memset(&msg, 0, sizeof(msg));
-                msg.type = COMMAND;
-                strcpy(msg.content, "FAILED:Login failed.Info does not match.");
+                setMsg(msg, COMMAND, nullptr, nullptr, "FAILED");
                 sendMsg(msg, call); //服务端反馈
                 cout << "Login failed.Info does not match." << endl;
             }
         }
         else
         {
-            memset(&msg, 0, sizeof(msg));
-            msg.type = COMMAND;
-            strcpy(msg.content, "FAILED:Login failed.Info does not match.");
+            setMsg(msg, COMMAND, nullptr, nullptr, "FAILED");
             sendMsg(msg, call); //服务端反馈
             cout << "Login failed.Info does not match." << endl;
         }
     }
     else
     {
-        char tmp[1024] = {0};
-        strcpy(tmp, "FAILED:Login failed.Database error:");
-        strcat(tmp, mysql_error(&mysql));
-        memset(&msg, 0, sizeof(msg));
-        msg.type = COMMAND;
-        strcpy(msg.content, tmp);
+        setMsg(msg, COMMAND, nullptr, nullptr, "FAILED");
         sendMsg(msg, call); //服务端反馈
-        cout << tmp << endl;
+        cout << "FAILED:Login failed.Database error:" << mysql_error(&mysql) << endl;
     }
 }
 void Server::Signup(int call)
 {
     cout << "A connector is trying to signup." << endl;
-    char buf[65535];
     char query[1024];
-    memset(buf, 0, sizeof(buf));
-    memset(&acc, 0, sizeof(acc));
-    while (acc.flag == false)
-    {
-        usleep(1000);
-        recv(call, buf, 65535, 0);
-        memcpy(&acc, buf, sizeof(acc));
-    }
-    sprintf(query, "insert into userinfo values ('%s', '%s');", acc.account, acc.pwd);
+    Account tmp;
+    recvMsg(call, tmp);
+    sprintf(query, "insert into userinfo values ('%s', '%s');", tmp.account, tmp.pwd);
     if (mysql_query(&mysql, query) == 0) //将用户名密码等数据写入数据库
     {
-        memset(&msg, 0, sizeof(msg));
-        msg.type = COMMAND;
-        strcpy(msg.content, "SUCCESS");
+        setMsg(msg, COMMAND, nullptr, nullptr, "SUCCESS");
         sendMsg(msg, call); //服务端反馈
         cout << "Signup success." << endl;
-        createFriendList();
-        createQuerybox();
+        createFriendList(tmp.account);
+        createQuerybox(tmp.account);
     }
     else
     {
-        memset(&msg, 0, sizeof(msg));
-        msg.type = COMMAND;
-        strcpy(msg.content, "FAILED");
-        strcat(msg.content, mysql_error(&mysql));
+        setMsg(msg, COMMAND, nullptr, nullptr, "FAILED");
         sendMsg(msg, call); //服务端反馈
         cout << "Signup failed:" << mysql_error(&mysql) << endl;
     }

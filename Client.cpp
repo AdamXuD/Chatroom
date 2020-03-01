@@ -100,7 +100,7 @@ void Client::dealwithmsg(char *Target)
     case PRIVTALK:
     {
         cout << "\033[32m[私聊]\033[0m";
-        if (strstr(msg.fromUser, Target) != NULL)
+        if (strEqual(msg.fromUser, Target))
         {
             cout << "\033[33m>" << msg.fromUser << " 说：" << msg.content << "\033[0m" << endl; //当指定了聊天对象时 聊天对象消息高亮
         }
@@ -113,7 +113,7 @@ void Client::dealwithmsg(char *Target)
     case GROUPTALK:
     {
         cout << "\033[34m[群聊]\033[0m";
-        if (strstr(msg.fromUser, Target) != NULL)
+        if (strEqual(msg.fromUser, Target))
         {
             cout << "\033[33m>" << msg.fromUser << " 说：" << msg.content << "\033[0m" << endl; //当指定了聊天对象时 聊天对象消息高亮
         }
@@ -137,8 +137,7 @@ void Client::Start() //客户端入口
     }
     else
     {
-        cout << "请输入昵称：" << endl;
-        cin.getline(acc.account, 32); //非登录模式下获取用户名
+        input(acc.account, "请输入昵称："); //非登录模式下获取用户名
         isLogin = true;
     }
     pthread_t heartbeat;                                               //建立新进程
@@ -167,39 +166,39 @@ void Client::Start() //客户端入口
             {
                 tmp.erase(0, 1); //吃掉一个斜杠
                 string command = tmp;
-                if (command.find("private ") != string::npos) //如果指令是私聊的话
+                if (strEqual(command, "private ")) //如果指令是私聊的话
                 {
                     Privatetalk(command);
                 }
-                else if (command.find("group ") != string::npos)
+                else if (strEqual(command, "group "))
                 {
                     Grouptalk(command);
                 }
-                else if (command.find("makefriend ") != string::npos)
+                else if (strEqual(command, "makefriend "))
                 {
                     makeFriend(command);
                 }
-                else if (command.find("accept ") != string::npos || command.find("refuse ") != string::npos)
+                else if (strEqual(command, "accept ") || strEqual(command, "refuse "))
                 {
                     dealwithQuery(command);
                 }
-                else if (command.find("suki ") != string::npos)
+                else if (strEqual(command, "suki "))
                 {
                     setSuki(command);
                 }
-                else if (command.find("kirai ") != string::npos)
+                else if (strEqual(command, "kirai "))
                 {
                     setKirai(command);
                 }
-                else if (command.find("queryfriendlist") != string::npos)
+                else if (strEqual(command, "queryfriendlist"))
                 {
                     queryFriendList();
                 }
-                else if (command.find("joingroup ") != string::npos)
+                else if (strEqual(command, "joingroup "))
                 {
                     joinGroup(command);
                 }
-                else if(command.find("creategroup "))
+                else if (strEqual(command, "creategroup "))
                 {
                     createGroupTalk(command);
                 }
@@ -211,12 +210,8 @@ void Client::Start() //客户端入口
             }
             else
             {
-                msg.type = ALL;
-                strcpy(msg.fromUser, acc.account);
-                strcpy(msg.content, tmp.c_str());
-                memset(buf, 0, sizeof(buf));
-                memcpy(buf, &msg, sizeof(msg));
-                write(pipe_fd[1], buf, sizeof(buf));
+                setMsg(msg, ALL, acc.account, nullptr, tmp.c_str());
+                sendMsg(msg, pipe_fd[1]);
             }
         }
     }
@@ -239,9 +234,7 @@ void Client::Start() //客户端入口
                 }
                 else //管道标识符响应时
                 {
-                    memset(buf, 0, sizeof(buf));
-                    read(events[i].data.fd, buf, sizeof(buf));
-                    memcpy(&msg, buf, sizeof(msg));
+                    recvMsg(pipe_fd[0], msg);
                     if (msg.type == PIPE)
                     {
                         strcpy(Target, msg.toUser);

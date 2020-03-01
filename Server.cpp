@@ -10,16 +10,8 @@ void Server::Prepare()
     clear();
     char ip[17] = {0};
     int port;
-    cout << "请输入服务器IP：" << endl;
-    cin.clear();
-    cin.sync();
-    cin >> ip;
-    getchar();
-    cout << "请输入端口号：" << endl;
-    cin.clear();
-    cin.sync();
-    cin >> port;
-    getchar();
+    input(ip, "请输入服务器IP：");
+    input(port, "请输入端口号：");
     cout << "服务器启动中……" << endl;
     sock_fd = socket(AF_INET, SOCK_STREAM, 0); //socket部分开始
     if (sock_fd < 0)
@@ -41,7 +33,7 @@ void Server::Prepare()
     }
     if (listen(sock_fd, 5) < 0)
     {
-        cout << "Change to LISTENING errer;" << endl;
+        cout << "Change to LISTENING error;" << endl;
         user_wait();
         exit(-1);
     }
@@ -71,7 +63,7 @@ void Server::Prepare()
         {
             cout << "Success to connect database" << endl;
         }
-        mysql_set_character_set(&mysql, "utf8");//解决中文乱码问题
+        mysql_set_character_set(&mysql, "utf8"); //解决中文乱码问题
     }
     /*数据库初始化部分结束*/
     user_wait();
@@ -95,61 +87,67 @@ void Server::dealWithMsg(int call)
     {
     case 0:
     {
-        cout << "illegal message:" << msg.content << endl;
+        cout << "illegal message:type=0" << msg.content << endl;
         break;
     }
     case COMMAND: //如果收到命令类消息
     {
-        if (strstr(msg.content, "SIGNIN") != NULL) //接收并处理客户端的登录请求
+        if (strEqual(msg.content, "SIGNIN")) //接收并处理客户端的登录请求
         {
-            Login(call);
+            int pid = fork();
+            if (pid == 0)
+            {
+                Login(call);
+                exit(0);
+            }
         }
-        else if (strstr(msg.content, "SIGNUP") != NULL) //接收并处理客户端的注册请求
+        else if (strEqual(msg.content, "SIGNUP")) //接收并处理客户端的注册请求
         {
             Signup(call);
         }
-        else if (strstr(msg.content, "MAKEFRIEND") != NULL)
+        else if (strEqual(msg.content, "MAKEFRIEND"))
         {
             makeFriendQuery();
         }
-        else if (strstr(msg.content, "refuse") != NULL || strstr(msg.content, "accept") != NULL)
+        else if (strEqual(msg.content, "refuse") || strEqual(msg.content, "accept"))
         {
             dealwithQuery();
         }
-        else if (strstr(msg.content, "SUKI") != NULL)
+        else if (strEqual(msg.content, "SUKI"))
         {
             setSuki();
         }
-        else if (strstr(msg.content, "KIRAI") != NULL)
+        else if (strEqual(msg.content, "KIRAI"))
         {
             setKirai();
         }
-        else if (strstr(msg.content, "DELETEFRIEND") != NULL)
+        else if (strEqual(msg.content, "DELETEFRIEND"))
         {
             deleteFriend(msg.fromUser, msg.toUser);
         }
-        else if (strstr(msg.content, "QUERYFRIENDLIST") != NULL)
+        else if (strEqual(msg.content, "QUERYFRIENDLIST"))
         {
             sendFriendList(call);
         }
-        else if (strstr(msg.content, "admin") != NULL)
+        else if (strEqual(msg.content, "admin"))
         {
             setGroupAdmin();
         }
-        else if (strstr(msg.content, "JOINGROUP") != NULL)
+        else if (strEqual(msg.content, "JOINGROUP"))
         {
             joinGroupQuery();
         }
-        else if (strstr(msg.content, "LEAVEGROUP") != NULL)
+        else if (strEqual(msg.content, "LEAVEGROUP"))
         {
             leaveGroup();
         }
-        else if (strstr(msg.content, "creategroup") != NULL)
+        else if (strEqual(msg.content, "creategroup"))
         {
             createGroupTalk();
         }
         else //还可以再添加其他的else 我想通过这种方式来实现组群加好友之类的操作 但是我觉得这样子效率有点低 你们看看有没有更好的方法
         {
+            cout << msg.content << endl;
             cout << "illegal message:" << msg.content << endl;
         }
         break;
@@ -233,7 +231,7 @@ void Server::Start() //服务端程序入口
                 if (LOGINMODE == 0)
                 {
                     cout << "Login success." << endl;
-                    addonlinelist(call, acc.account);
+                    addonlinelist(clnt_sock);
                     cout << "Now there are " << onlinelist.size() << " user(s) online." << endl;
                     Onlineremind(clnt_sock);
                 }

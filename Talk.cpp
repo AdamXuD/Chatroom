@@ -5,9 +5,7 @@
 /*群聊相关权限部分*/
 void Client::createGroupTalk(string command) //创建群聊
 {
-    msg.type = COMMAND;
-    strcpy(msg.fromUser, acc.account);
-    strcpy(msg.content, command.c_str());
+    setMsg(msg, COMMAND, acc.account, nullptr, command.c_str());
     if (sendMsg(msg, sock_fd) < 0)
     {
         cout << "请求失败，请检查网络连接！" << endl;
@@ -15,10 +13,7 @@ void Client::createGroupTalk(string command) //创建群聊
 }
 void Client::setGroupAdmin(string command, string toGroup) //设置管理员
 {
-    msg.type = COMMAND;
-    strcpy(msg.fromUser, acc.account);
-    strcpy(msg.toUser, toGroup.c_str());
-    strcpy(msg.content, command.c_str());
+    setMsg(msg, COMMAND, acc.account, toGroup.c_str(), command.c_str());
     if (sendMsg(msg, sock_fd) < 0)
     {
         cout << "请求失败，请检查网络连接！" << endl;
@@ -26,10 +21,7 @@ void Client::setGroupAdmin(string command, string toGroup) //设置管理员
 }
 void Client::joinGroup(string command) //加入群聊
 {
-    msg.type = COMMAND;
-    strcpy(msg.fromUser, acc.account);
-    strcpy(msg.toUser, command.substr(sizeof("joingroup ") - 1).c_str());
-    strcpy(msg.content, "JOINGROUP");
+    setMsg(msg, COMMAND, acc.account, command.substr(sizeof("joingroup ") - 1).c_str(), "JOINGROUP");
     if (sendMsg(msg, sock_fd) < 0)
     {
         cout << "请求失败，请检查网络连接！" << endl;
@@ -37,10 +29,7 @@ void Client::joinGroup(string command) //加入群聊
 }
 void Client::leaveGroup(string Group) //主动离开群聊
 {
-    msg.type = COMMAND;
-    strcpy(msg.fromUser, acc.account);
-    strcpy(msg.toUser, Group.c_str());
-    strcpy(msg.content, "LEAVEGROUP");
+    setMsg(msg, COMMAND, acc.account, Group.c_str(), "LEAVEGROUP");
     if (sendMsg(msg, sock_fd) < 0)
     {
         cout << "请求失败，请检查网络连接！" << endl;
@@ -48,10 +37,7 @@ void Client::leaveGroup(string Group) //主动离开群聊
 }
 void Client::deleteGroupMember(string command, string Group) //踢人
 {
-    msg.type = COMMAND;
-    strcpy(msg.fromUser, acc.account);
-    strcpy(msg.toUser, Group.c_str());
-    strcpy(msg.content, command.c_str());
+    setMsg(msg, COMMAND, acc.account, Group.c_str(), command.c_str());
     if (sendMsg(msg, sock_fd) < 0)
     {
         cout << "请求失败，请检查网络连接！" << endl;
@@ -59,10 +45,7 @@ void Client::deleteGroupMember(string command, string Group) //踢人
 }
 void Client::queryGroupMember(string Group)
 {
-    msg.type = COMMAND;
-    strcpy(msg.fromUser, acc.account);
-    strcpy(msg.toUser, Group.c_str());
-    strcpy(msg.content, "QUERYMEMBER");
+    setMsg(msg, COMMAND, acc.account, Group.c_str(), "QUERYMEMBER");
     if (sendMsg(msg, sock_fd) < 0)
     {
         cout << "请求失败，请检查网络连接！" << endl;
@@ -70,16 +53,13 @@ void Client::queryGroupMember(string Group)
     else
     {
         cout << "正在请求群员列表..." << endl;
-        char buf[65535] = {0};
         char memberList[1536][32] = {0};
         fstream ml;
         ml.open(Group.c_str(), ios::out);
         while (1)
         {
-            sleep(1);
-            recv(sock_fd, buf, sizeof(buf), 0);
-            memcpy(memberList, buf, sizeof(buf));
-            if (strstr(memberList[0], "account") != NULL)
+            recvMsg(sock_fd, (char *)memberList);
+            if (strEqual(memberList[0], "account"))
             {
                 ml << "account ";
                 ml << "flag" << endl;
@@ -100,53 +80,41 @@ void Client::Grouptalk(string command) //处理用户群聊请求
     char buf[65535];
     toGroup = command.substr(sizeof("group ") - 1);
     cout << "你正在 " << toGroup << " 群内发言：" << endl;
-    msg.type = PIPE;
-    strcpy(msg.toUser, toGroup.c_str());
-    memset(buf, 0, sizeof(buf));
-    memcpy(buf, &msg, sizeof(msg));
-    write(pipe_fd[1], buf, sizeof(buf));
+    setMsg(msg, PIPE, nullptr, toGroup.c_str(), nullptr);
+    sendMsg(msg, pipe_fd[1]);
     while (1)
     {
-        string tmp;
-        getline(cin, tmp, '\n');
-        if (*tmp.begin() == '/') //指令语意处理
+        string command;
+        getline(cin, command, '\n');
+        if (*command.begin() == '/') //指令语意处理
         {
-            tmp.erase(0, 1); //吃掉一个斜杠
-            string command = tmp;
-            if (command.find("admin ") != string::npos)
+            command.erase(0, 1); //吃掉一个斜杠
+            if (strEqual(command, "admin "))
             {
                 setGroupAdmin(command, toGroup);
             }
-            else if (command.find("leave") != string::npos)
+            else if (strEqual(command, "leave"))
             {
                 leaveGroup(toGroup);
             }
-            else if(command.find("kickoff ") != string::npos)
+            else if (strEqual(command, "kickoff "))
             {
                 deleteGroupMember(command, toGroup);
             }
-            else if (command.find("querymember"))
+            else if (strEqual(command, "querymember"))
             {
                 queryGroupMember(toGroup);
             }
         }
         else
         {
-            msg.type = GROUPTALK;
-            strcpy(msg.fromUser, acc.account);
-            strcpy(msg.toUser, toGroup.c_str());
-            strcpy(msg.content, tmp.c_str());
-            memset(buf, 0, sizeof(buf));
-            memcpy(buf, &msg, sizeof(msg));
-            write(pipe_fd[1], buf, sizeof(buf));
+            setMsg(msg, GROUPTALK, acc.account, toGroup.c_str(), command.c_str());
+            sendMsg(msg, pipe_fd[1]);
         }
-        if (tmp == "_exit")
+        if (command == "_exit")
         {
-            msg.type = PIPE;
-            strcpy(msg.toUser, "\0");
-            memset(buf, 0, sizeof(buf));
-            memcpy(buf, &msg, sizeof(msg));
-            write(pipe_fd[1], buf, sizeof(buf));
+            setMsg(msg, PIPE, nullptr, "\0", nullptr);
+            sendMsg(msg, pipe_fd[1]);
             break;
         }
     }
@@ -160,33 +128,22 @@ void Client::Privatetalk(string command) //处理用户私聊请求
     char buf[65535];
     toUser = command.substr(sizeof("private ") - 1);
     cout << "你正在与 " << toUser << " 聊天：" << endl;
-    msg.type = PIPE;
-    strcpy(msg.toUser, toUser.c_str());
-    memset(buf, 0, sizeof(buf));
-    memcpy(buf, &msg, sizeof(msg));
-    write(pipe_fd[1], buf, sizeof(buf));
+    setMsg(msg, PIPE, nullptr, toUser.c_str(), nullptr);
+    sendMsg(msg, pipe_fd[1]);
     while (1)
     {
         string tmp;
         getline(cin, tmp, '\n');
         if (tmp == "_exit")
         {
-            msg.type = PIPE;
-            strcpy(msg.toUser, "\0");
-            memset(buf, 0, sizeof(buf));
-            memcpy(buf, &msg, sizeof(msg));
-            write(pipe_fd[1], buf, sizeof(buf));
+            setMsg(msg, PIPE, nullptr, "\0", nullptr);
+            sendMsg(msg, pipe_fd[1]);
             break;
         }
         else
         {
-            msg.type = PRIVTALK;
-            strcpy(msg.fromUser, acc.account);
-            strcpy(msg.toUser, toUser.c_str());
-            strcpy(msg.content, tmp.c_str());
-            memset(buf, 0, sizeof(buf));
-            memcpy(buf, &msg, sizeof(msg));
-            write(pipe_fd[1], buf, sizeof(buf));
+            setMsg(msg, PRIVTALK, acc.account, toUser.c_str(), tmp.c_str());
+            sendMsg(msg, pipe_fd[1]);
         }
     }
 }
@@ -243,14 +200,12 @@ void Server::SendGroupMember(int call)
     {
         cout << "Query memberlist error:" << mysql_error(&mysql) << endl;
     }
-    memset(buf, 0, sizeof(buf));
-    memcpy(buf, memberList, sizeof(memberList));
-    send(call, buf, sizeof(buf), 0);
+    sendMsg((char *)memberList, call);
 }
 void Server::sendAdminMsg(Msg message, bool sw_query, char *fromUser)
 {
     char query[5120], memberlist[1536][32] = {0};
-    sprintf(query, "select account from group_%s where flag = 1 or flag = 2;", msg.toUser);
+    sprintf(query, "select account from group_%s where flag = '1' or flag = '2';", msg.toUser);
     if (mysql_query(&mysql, query) == 0)
     {
         MYSQL_RES *res;
@@ -273,7 +228,7 @@ void Server::sendAdminMsg(Msg message, bool sw_query, char *fromUser)
     {
         for (int i = 0; memberlist[i] != "\0"; i++)
         {
-            if (strstr(it->second.first.c_str(), memberlist[i]) != NULL)
+            if (strEqual(it->second.first.c_str(), memberlist[i]))
             {
                 sendMsg(message, it->first);
             }
@@ -300,11 +255,7 @@ void Server::createGroupTalk() //创建群聊
     if(mysql_query(&mysql, query) != 0)
     {
         cout << "Create group error: " << mysql_error(&mysql) <<endl;
-        Msg tmp;
-        tmp.type = PRIVTALK;
-        strcpy(tmp.fromUser, "Admin");
-        strcpy(tmp.toUser, msg.fromUser);
-        strcpy(tmp.content, "创建群聊请求失败，请稍后再试！");
+        setMsg(msg, PRIVTALK, ADMIN, msg.fromUser, "创建群聊请求失败，请稍后再试！");
         Privatetalk(msg);
         return;
     }
@@ -314,11 +265,7 @@ void Server::createGroupTalk() //创建群聊
         cout << "Create group error: " << mysql_error(&mysql) << endl;
         sprintf(query, "delete from groupinfo where group = '%s';", Group);
         mysql_query(&mysql, query);
-        Msg tmp;
-        tmp.type = PRIVTALK;
-        strcpy(tmp.fromUser, "Admin");
-        strcpy(tmp.toUser, msg.fromUser);
-        strcpy(tmp.content, "创建群聊请求失败，请稍后再试！");
+        setMsg(msg, PRIVTALK, ADMIN, msg.fromUser, "创建群聊请求失败，请稍后再试！");
         Privatetalk(msg);
         return;
     }
@@ -330,19 +277,15 @@ void Server::createGroupTalk() //创建群聊
         mysql_query(&mysql, query);
         sprintf(query, "drop table group_%s;", Group);
         mysql_query(&mysql, query);
-        Msg tmp;
-        tmp.type = PRIVTALK;
-        strcpy(tmp.fromUser, "Admin");
-        strcpy(tmp.toUser, msg.fromUser);
-        strcpy(tmp.content, "创建群聊请求失败，请稍后再试！");
+        setMsg(msg, PRIVTALK, ADMIN, msg.fromUser, "创建群聊请求失败，请稍后再试！");
         Privatetalk(msg);
         return;
     }
 }
 int Server::addGroupMember(char *Group, char *Member)
 {
-    char query[1024];
-    sprintf(query, "insert into group_%s values ('%s', 0);", Group, Member);
+    char query[1024], content[4096];
+    sprintf(query, "insert into group_%s values ('%s', '0');", Group, Member);
     int ret = mysql_query(&mysql, query);
     if(ret < 0)
     {
@@ -357,10 +300,8 @@ int Server::addGroupMember(char *Group, char *Member)
             mysql_query(&mysql, query);
             return -1;
         }
-        msg.type = GROUPTALK;
-        strcpy(msg.fromUser, "Admin");
-        strcpy(msg.toUser, Group);
-        sprintf(msg.content, "%s 加入群聊 %s 啦！", Member, Group);
+        sprintf(content, "%s 加入群聊 %s 啦！", Member, Group);
+        setMsg(msg, GROUPTALK, ADMIN, Group, content);
         Grouptalk(msg);
         return ret;
     }
@@ -378,28 +319,21 @@ void Server::setGroupAdmin() //设置管理员
         sprintf(query, "update Group_%s set flag = '1' where account = '%s'", Group, toM);
         if (mysql_query(&mysql, query) == 0)
         {
-            msg.type = GROUPTALK;
-            strcpy(msg.fromUser, "Admin");
-            strcpy(msg.toUser, fromM);
-            sprintf(msg.content, "%s 已经被设置成管理员。", toM);
+            char content[4096];
+            sprintf(content, "%s 已经被设置成管理员。", toM);
+            setMsg(msg, GROUPTALK, ADMIN, fromM, content);
             Grouptalk(msg);
         }
         else
         {
             cout << "Query error: " << mysql_error(&mysql) << endl;
-            msg.type = PRIVTALK;
-            strcpy(msg.fromUser, "Admin");
-            strcpy(msg.toUser, fromM);
-            strcpy(msg.content, "管理员设置请求失败，请稍后再试！");
+            setMsg(msg, PRIVTALK, ADMIN, fromM, "管理员设置请求失败，请稍后再试！");
             Privatetalk(msg);
         }
     }
     else
     {
-        msg.type = PRIVTALK;
-        strcpy(msg.fromUser, "Admin");
-        strcpy(msg.toUser, fromM);
-        strcpy(msg.content, "管理员设置请求失败，权限不足！");
+        setMsg(msg, PRIVTALK, ADMIN, fromM, "管理员设置请求失败，权限不足！");
         Privatetalk(msg);
     }
 }
@@ -416,22 +350,14 @@ void Server::joinGroupQuery() //处理加入群聊请求
         if (row != NULL)
         {
             Msg tmp;
-            memset(&tmp, 0, sizeof(tmp));
-            tmp.type = PRIVTALK;
-            strcpy(tmp.fromUser, "Admin");
-            strcpy(tmp.toUser, msg.toUser);
-            sprintf(tmp.content, "用户\033[33m %s \033[0m请求加入%s群聊！", msg.fromUser, msg.toUser);
+            char content[4096];
+            sprintf(tmp.content, "用户 %s 请求加入%s群聊！", msg.fromUser, msg.toUser);
+            setMsg(tmp, PRIVTALK, ADMIN, msg.toUser, content);
             sendAdminMsg(tmp, true, msg.fromUser);
         }
         else
         {
-            char tmpusr[32];
-            strcpy(tmpusr, msg.fromUser);
-            memset(&msg, 0, sizeof(msg));
-            msg.type = PRIVTALK;
-            strcpy(msg.fromUser, "Admin");
-            strcpy(msg.toUser, tmpusr);
-            strcpy(msg.content, "好友添加请求失败，请确认该用户是否存在！");
+            setMsg(msg, PRIVTALK, ADMIN, msg.toUser, "好友添加请求失败，请确认该用户是否存在！");
             Privatetalk(msg);
         }
     }
@@ -439,26 +365,21 @@ void Server::joinGroupQuery() //处理加入群聊请求
 void Server::leaveGroup() //处理离开群聊请求
 {
     char query[1024];
-    Msg tmp;
     sprintf(query, "delete from group_%s where account = '%s'", msg.toUser, msg.fromUser);
     if(mysql_query(&mysql, query) == 0)
     {
+        char content[4096];
+        sprintf(content, "%s 已离开 %s 群聊！", msg.fromUser, msg.toUser);
         sprintf(query, "delete from %s_friendlist where account = '%s'", msg.fromUser, msg.toUser);
         mysql_query(&mysql, query);
-        tmp.type = GROUPTALK;
-        strcpy(tmp.fromUser, "Admin");
-        strcpy(tmp.toUser, msg.toUser);
-        sprintf(tmp.content, "%s 已离开 %s 群聊！", msg.fromUser, msg.toUser);
-        Grouptalk(tmp);
+        setMsg(msg, GROUPTALK, ADMIN, msg.toUser, content);
+        Grouptalk(msg);
     }
     else
     {
         cout << "Leaving group error: " << mysql_error(&mysql) << endl;
-        tmp.type = PRIVTALK;
-        strcpy(tmp.fromUser, "Admin");
-        strcpy(tmp.toUser, msg.fromUser);
-        strcpy(tmp.content, "请求失败，请稍后再试！");
-        Privatetalk(tmp);
+        setMsg(msg, PRIVTALK, ADMIN, msg.fromUser, "请求失败，请稍后再试！");
+        Privatetalk(msg);
     }
 }
 void Server::deleteGroupMember() //处理踢出群聊请求
@@ -474,35 +395,26 @@ void Server::deleteGroupMember() //处理踢出群聊请求
         sprintf(query, "delete from Group_%s where account = '%s'", Group, toM);
         if (mysql_query(&mysql, query) == 0)
         {
+            char content[4096];
             sprintf(query, "delete from %s_friendlist where account = '%s'", toM, Group);
             mysql_query(&mysql, query);
-            msg.type = GROUPTALK;
-            strcpy(msg.fromUser, "Admin");
-            strcpy(msg.toUser, fromM);
             sprintf(msg.content, "%s 已经被移除群聊。", toM);
+            setMsg(msg, GROUPTALK, ADMIN, Group, content);
             Grouptalk(msg);
-            msg.type = PRIVTALK;
-            strcpy(msg.fromUser, "Admin");
-            strcpy(msg.toUser, toM);
             sprintf(msg.content, "您已经被移除 %s 群聊。", Group);
+            setMsg(msg, PRIVTALK, ADMIN, toM, content);
             Privatetalk(msg);
         }
         else
         {
             cout << "Query error: " << mysql_error(&mysql) << endl;
-            msg.type = PRIVTALK;
-            strcpy(msg.fromUser, "Admin");
-            strcpy(msg.toUser, fromM);
-            strcpy(msg.content, "移除群聊请求失败，请稍后再试！");
+            setMsg(msg, PRIVTALK, ADMIN, fromM, "移除群聊请求失败，请稍后再试！");
             Privatetalk(msg);
         }
     }
     else
     {
-        msg.type = PRIVTALK;
-        strcpy(msg.fromUser, "Admin");
-        strcpy(msg.toUser, fromM);
-        strcpy(msg.content, "管理员设置请求失败，权限不足！");
+        setMsg(msg, PRIVTALK, ADMIN, fromM, "管理员设置请求失败，权限不足！");
         Privatetalk(msg);
     }
 }
@@ -532,7 +444,7 @@ void Server::Grouptalk(Msg message, int call) //处理用户群聊请求
     {
         for (int i = 0; memberlist[i] != "\0"; i++)
         {
-            if (strstr(it->second.first.c_str(), memberlist[i]) != NULL)
+            if (strEqual(it->second.first.c_str(), memberlist[i]))
             {
                 if (it->first != call)
                 {
@@ -550,7 +462,7 @@ void Server::Privatetalk(Msg msg) //处理用户私聊请求
     int count = 0;
     for (i = onlinelist.begin(); i != onlinelist.end(); i++)
     {
-        if (i->second.first == msg.toUser)
+        if (strEqual(i->second.first, msg.toUser))
         {
             sendMsg(msg, i->first);
         }
@@ -563,16 +475,11 @@ void Server::Privatetalk(Msg msg) //处理用户私聊请求
     {
         cout << "No hits found." << endl;
         /*发送失败反馈*/
-        if (strstr(msg.fromUser, "Admin") == NULL)
+        if (strEqual(msg.fromUser, ADMIN) == false)
         {
-            char tmpacc[32], tmpcon[5120];
-            sprintf(tmpcon, "发向用户 %s 的 “%s” 发送失败！可能是用户名错误或者对方不在线！", msg.toUser, msg.content);
-            strcpy(tmpacc, msg.fromUser);
-            memset(&msg, 0, sizeof(msg));
-            msg.type = PRIVTALK;
-            strcpy(msg.fromUser, "Admin");
-            strcpy(msg.toUser, tmpacc);
-            strcpy(msg.content, tmpcon);
+            char content[5120];
+            sprintf(content, "发向用户 %s 的 “%s” 发送失败！可能是用户名错误或者对方不在线！", msg.toUser, msg.content);
+            setMsg(msg, PRIVTALK, ADMIN, msg.fromUser, content);
             Privatetalk(msg);
         }
         else

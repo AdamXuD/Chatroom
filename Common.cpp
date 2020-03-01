@@ -36,29 +36,84 @@ void input(int &num, const char *tips)
     num = atoi(tmp);
 }
 
-int sendMsg(const Msg msg, int fd) //发送消息用接口
+int sendMsg(Msg &msg, int fd) //发送消息用接口
 {
     char buf[65535];
     memset(buf, 0, sizeof(buf));
     memcpy(buf, &msg, sizeof(msg));
-    int ret = send(fd, buf, sizeof(buf), 0);
+    int ret = write(fd, buf, sizeof(buf));
+    memset(&msg, 0, sizeof(msg));
     return ret;
 }
 
 int recvMsg(int fd, Msg &msg) //接收消息用接口
 {
     char buf[65535];
-    int ret;
+    int ret = 0;
     memset(&msg, 0, sizeof(msg));
-    while (msg.type == 0)
-    //因为设定了socket非阻塞状态 recv()函数未接受到消息也不再阻塞
+    while (ret <= 0)
+    //因为设定了socket非阻塞状态 read()函数未接受到消息也不再阻塞
     //设定循环让其接收到消息后再跳出循环
     {
         usleep(1000);
         //然后就是这个死循环要是不用sleep函数放慢一点的话我后面的函数一定会出问题(就很离谱)
         //而且会对资源造成不必要的浪费
         memset(buf, 0, sizeof(buf));
-        ret = recv(fd, buf, 65535, 0);
+        ret = read(fd, buf, 65535);
+        memcpy(&msg, buf, sizeof(msg));
+    }
+    return ret;
+}
+
+int sendMsg(Account &msg, int fd) //发送消息用接口
+{
+    char buf[65535];
+    memset(buf, 0, sizeof(buf));
+    memcpy(buf, &msg, sizeof(msg));
+    int ret = write(fd, buf, sizeof(buf));
+    return ret;
+}
+int recvMsg(int fd, Account &msg) //接收消息用接口
+{
+    char buf[65535];
+    int ret = 0;
+    memset(&msg, 0, sizeof(msg));
+    while (ret <= 0)
+    //因为设定了socket非阻塞状态 read()函数未接受到消息也不再阻塞
+    //设定循环让其接收到消息后再跳出循环
+    {
+        usleep(1000);
+        //然后就是这个死循环要是不用sleep函数放慢一点的话我后面的函数一定会出问题(就很离谱)
+        //而且会对资源造成不必要的浪费
+        memset(buf, 0, sizeof(buf));
+        ret = read(fd, buf, 65535);
+        memcpy(&msg, buf, sizeof(msg));
+    }
+    return ret;
+}
+int sendMsg(char *msg, int fd) //发送消息用接口
+{
+    char buf[65535];
+    memset(buf, 0, sizeof(buf));
+    memcpy(buf, &msg, sizeof(msg));
+    int ret = write(fd, buf, sizeof(buf));
+    memset(&msg, 0, sizeof(msg));
+    return ret;
+}
+int recvMsg(int fd, char *msg)    //接收消息用接口
+{
+    char buf[65535];
+    int ret = 0;
+    memset(&msg, 0, sizeof(msg));
+    while (ret <= 0)
+    //因为设定了socket非阻塞状态 read()函数未接受到消息也不再阻塞
+    //设定循环让其接收到消息后再跳出循环
+    {
+        usleep(1000);
+        //然后就是这个死循环要是不用sleep函数放慢一点的话我后面的函数一定会出问题(就很离谱)
+        //而且会对资源造成不必要的浪费
+        memset(buf, 0, sizeof(buf));
+        ret = read(fd, buf, 65535);
         memcpy(&msg, buf, sizeof(msg));
     }
     return ret;
@@ -66,11 +121,51 @@ int recvMsg(int fd, Msg &msg) //接收消息用接口
 
 int sendHeartBeats(int fd, Msg &msg)
 {
-    memset(&msg, 0, sizeof(msg));
-    msg.type = HEARTBEAT;
+    setMsg(msg, HEARTBEAT);
     int ret = sendMsg(msg, fd);
-    memset(&msg, 0, sizeof(msg));
     return ret;
+}
+
+void setMsg(Msg &msg, int type, const char *fromUser, const char *toUser, const char *content)
+{
+    memset(&msg, 0, sizeof(msg));
+    msg.type = type;
+    if (fromUser != nullptr)
+    {
+        strcpy(msg.fromUser, fromUser);
+    }
+    if (toUser != nullptr)
+    {
+        strcpy(msg.toUser, toUser);
+    }
+    if (content != nullptr)
+    {
+        strcpy(msg.content, content);
+    }
+}
+
+bool strEqual(string str1, const char *str2) //判断字符串是否相等（或1是否包含2）
+{
+    if (str1.find(str2) != string::npos)
+    {
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+}
+
+bool strEqual(const char *str1, const char *str2) //判断字符串1是否包含2
+{
+    if (strstr(str1, str2) != NULL)
+    {
+        return true;
+    }
+    else
+    {
+        return false;
+    }
 }
 
 void addepollfd(int epoll_fd, int fd) //增加监听描述符
