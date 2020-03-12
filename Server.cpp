@@ -11,6 +11,30 @@ Server::Server()
     sock_fd = 0;
     epoll_fd = 0;
 }
+
+void Server::Mysql_query(MYSQL *mysql, const char *q)
+{
+    struct tm *p = getTime();
+    if (mysql_query(mysql, q) != 0)
+    {
+        mysql_log
+            << "["
+            << p->tm_year + 1900
+            << "-"
+            << p->tm_mon + 1
+            << "-"
+            << p->tm_mday
+            << " "
+            << p->tm_hour
+            << ":"
+            << p->tm_min
+            << ":"
+            << p->tm_sec
+            << "] > "
+            << mysql_error(mysql) << endl;
+    }
+}
+
 void Server::Prepare()
 {
     clear();
@@ -73,7 +97,6 @@ void Server::Prepare()
     }
     /*数据库初始化部分结束*/
     mysql_log.open("mysql_log", ios::app);
-
     user_wait();
 }
 void Server::BroadcastMsg(int call)

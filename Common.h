@@ -90,4 +90,4 @@ int recvMsg(int fd, char *msg);           //接收消息用接口
 
 int sendHeartBeats(int fd, Msg &msg);//心跳包发送
 void addepollfd(int epoll_fd, int fd); //增加监听描述符
-void Mysql_query(MYSQL *mysql, const char *q);
+struct tm *getTime();

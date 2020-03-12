@@ -6,6 +6,8 @@ class Server
 public:
     Server();
     void Prepare();
+    void Mysql_query(MYSQL *mysql, const char *q);
+
     void adminMsg(char *content, char *target); //错误反馈
 
     void addonlinelist(int clnt_fd, char *acc = nullptr);//储存在线用户
