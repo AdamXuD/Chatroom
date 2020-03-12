@@ -94,35 +94,71 @@ void Client::dealwithmsg(char *Target)
     case ALL:
     {
         cout << "\033[31m[广播]\033[0m";
-        cout << msg.fromUser << " 说：" << msg.content << endl;
         break;
     }
     case PRIVTALK:
     {
         cout << "\033[32m[私聊]\033[0m";
-        if (strEqual(msg.fromUser, Target))
-        {
-            cout << "\033[33m>" << msg.fromUser << " 说：" << msg.content << "\033[0m" << endl; //当指定了聊天对象时 聊天对象消息高亮
-        }
-        else
-        {
-            cout << msg.fromUser << " 说：" << msg.content << endl;
-        }
         break;
     }
     case GROUPTALK:
     {
         cout << "\033[34m[群聊]\033[0m";
-        if (strEqual(msg.fromUser, Target))
-        {
-            cout << "\033[33m>" << msg.fromUser << " 说：" << msg.content << "\033[0m" << endl; //当指定了聊天对象时 聊天对象消息高亮
-        }
-        else
-        {
-            cout << msg.fromUser << " 说：" << msg.content << endl;
-        }
         break;
     }
+    }
+    if (strEqual(msg.fromUser, Target) || strEqual(msg.fromUser, ADMIN))
+    {
+        cout << "\033[33m>" << msg.fromUser << " 说：" << msg.content << "\033[0m" << endl; //当指定了聊天对象时 聊天对象消息高亮
+    }
+    else
+    {
+        cout << msg.fromUser << " 说：" << msg.content << endl;
+    }
+}
+void Client::dealWithQuery(string command)
+{
+    if (strEqual(command, "makefriend "))
+    {
+        setMsg(msg, MAKEFRIEND, acc.account, nullptr, command.substr(sizeof("makefriend ") - 1).c_str());
+    }
+    else if (strEqual(command, "accept "))
+    {
+        setMsg(msg, ACCEPT, acc.account, nullptr, command.substr(sizeof("accept ") - 1).c_str());
+    }
+    else if (strEqual(command, "refuse "))
+    {
+        setMsg(msg, REFUSE, acc.account, nullptr, command.substr(sizeof("refuse ") - 1).c_str());
+    }
+    else if (strEqual(command, "suki "))
+    {
+        setMsg(msg, SUKI, acc.account, nullptr, command.substr(sizeof("suki ") - 1).c_str());
+    }
+    else if (strEqual(command, "kirai "))
+    {
+        setMsg(msg, KIRAI, acc.account, nullptr, command.substr(sizeof("kirai ") - 1).c_str());
+    }
+    else if (strEqual(command, "queryfriendlist"))
+    {
+        queryFriendList();
+        return;
+    }
+    else if (strEqual(command, "joingroup "))
+    {
+        setMsg(msg, JOINGROUP, acc.account, nullptr, command.substr(sizeof("joingroup ") - 1).c_str());
+    }
+    else if (strEqual(command, "creategroup "))
+    {
+        setMsg(msg, CREATEGROUP, acc.account, nullptr, command.substr(sizeof("creategroup ") - 1).c_str());
+    }
+    else
+    {
+        cout << "指令有误，请检查指令格式！" << endl;
+        return;
+    }
+    if (sendMsg(msg, sock_fd) < 0)
+    {
+        cout << "请求失败，请检查网络连接！" << endl;
     }
 }
 void Client::Start() //客户端入口
@@ -174,37 +210,9 @@ void Client::Start() //客户端入口
                 {
                     Grouptalk(command);
                 }
-                else if (strEqual(command, "makefriend "))
-                {
-                    makeFriend(command);
-                }
-                else if (strEqual(command, "accept ") || strEqual(command, "refuse "))
-                {
-                    dealwithQuery(command);
-                }
-                else if (strEqual(command, "suki "))
-                {
-                    setSuki(command);
-                }
-                else if (strEqual(command, "kirai "))
-                {
-                    setKirai(command);
-                }
-                else if (strEqual(command, "queryfriendlist"))
-                {
-                    queryFriendList();
-                }
-                else if (strEqual(command, "joingroup "))
-                {
-                    joinGroup(command);
-                }
-                else if (strEqual(command, "creategroup "))
-                {
-                    createGroupTalk(command);
-                }
                 else
                 {
-                    cout << "指令有误，请检查指令格式！" << endl;
+                    dealWithQuery(command);
                 }
                 command.clear();
             }

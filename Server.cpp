@@ -1,5 +1,11 @@
 #include "Server.h"
 
+void Server::adminMsg(char *content, char *target)
+{
+    setMsg(send_msg, PRIVTALK, ADMIN, target, content);
+    Privatetalk(send_msg);
+}
+
 Server::Server()
 {
     sock_fd = 0;
@@ -66,6 +72,8 @@ void Server::Prepare()
         mysql_set_character_set(&mysql, "utf8"); //解决中文乱码问题
     }
     /*数据库初始化部分结束*/
+    mysql_log.open("mysql_log", ios::app);
+
     user_wait();
 }
 void Server::BroadcastMsg(int call)
@@ -77,98 +85,95 @@ void Server::BroadcastMsg(int call)
         if (i->first != call) //除了发信者外
         {
             cout << "Send message to client " << i->first << endl;
-            sendMsg(msg, i->first); //给所有在线玩家发送消息
+            sendMsg(send_msg, i->first); //给所有在线玩家发送消息
         }
     }
 }
 void Server::dealWithMsg(int call)
 {
-    switch (msg.type)
+    switch (recv_msg.type)
     {
     case 0:
     {
-        cout << "illegal message:type=0" << msg.content << endl;
+        cout << "illegal message:type=0" << recv_msg.content << endl;
         break;
     }
+    case LOGIN:
+    {
+        Login(call);
+        break;
+    }
+    case SIGNUP:
+    {
+        Signup(call);
+        break;
+    }
+    case MAKEFRIEND:
+    {
+        makeFriendQuery();
+        break;
+    }
+    case ACCEPT:
+    case REFUSE:
+    {
+        dealwithQuery();
+        break;
+    }
+    case DELETEFRIEND:
+    {
+        deleteFriend();
+        break;
+    }
+    case SUKI:
+    case KIRAI:
+    {
+        setFriendFlag();
+        break;
+    }
+    case CREATEGROUP:
+    {
+        createGroupTalk();
+        break;
+    }
+    case JOINGROUP:
+    {
+        joinGroupQuery();
+        break;
+    }
+    case SETADMIN:
+        setGroupAdmin();
+        break;
+    case LEAVEGROUP:
+        leaveGroup();
+        break;
+    case KICKOFFMEMBER:
+        deleteGroupMember();
+        break;
+    case QUERYMEMBER:
+        sendFriendList(call);
+        break;
     case COMMAND: //如果收到命令类消息
     {
-        if (strEqual(msg.content, "SIGNIN")) //接收并处理客户端的登录请求
-        {
-            int pid = fork();
-            if (pid == 0)
-            {
-                Login(call);
-                exit(0);
-            }
-        }
-        else if (strEqual(msg.content, "SIGNUP")) //接收并处理客户端的注册请求
-        {
-            Signup(call);
-        }
-        else if (strEqual(msg.content, "MAKEFRIEND"))
-        {
-            makeFriendQuery();
-        }
-        else if (strEqual(msg.content, "refuse") || strEqual(msg.content, "accept"))
-        {
-            dealwithQuery();
-        }
-        else if (strEqual(msg.content, "SUKI"))
-        {
-            setSuki();
-        }
-        else if (strEqual(msg.content, "KIRAI"))
-        {
-            setKirai();
-        }
-        else if (strEqual(msg.content, "DELETEFRIEND"))
-        {
-            deleteFriend(msg.fromUser, msg.toUser);
-        }
-        else if (strEqual(msg.content, "QUERYFRIENDLIST"))
-        {
-            sendFriendList(call);
-        }
-        else if (strEqual(msg.content, "admin"))
-        {
-            setGroupAdmin();
-        }
-        else if (strEqual(msg.content, "JOINGROUP"))
-        {
-            joinGroupQuery();
-        }
-        else if (strEqual(msg.content, "LEAVEGROUP"))
-        {
-            leaveGroup();
-        }
-        else if (strEqual(msg.content, "creategroup"))
-        {
-            createGroupTalk();
-        }
-        else //还可以再添加其他的else 我想通过这种方式来实现组群加好友之类的操作 但是我觉得这样子效率有点低 你们看看有没有更好的方法
-        {
-            cout << msg.content << endl;
-            cout << "illegal message:" << msg.content << endl;
-        }
+        cout << "illegal message:" << recv_msg.content << endl;
         break;
     }
     case ALL:
     {
-        cout << "From:" << msg.fromUser << endl;
-        cout << "Say:" << msg.content << endl;
+        cout << "From:" << recv_msg.fromUser << endl;
+        cout << "Say:" << recv_msg.content << endl;
         BroadcastMsg(call);
         break;
     }
     case PRIVTALK: //下面两个可能写不完 先写
     {
         cout << "A user sends a message to another user." << endl;
-        Privatetalk(msg);
+        Privatetalk(recv_msg);
         break;
     }
     case GROUPTALK:
     {
         cout << "A user sends a message to a group" << endl;
-        Grouptalk(msg, call);
+        Grouptalk(recv_msg, call);
         break;
     }
     case HEARTBEAT:
@@ -238,7 +243,7 @@ void Server::Start() //服务端程序入口
             }
             else //如果服务器来自epoll监控队列中的其他描述符（已被accept分配过新的标识符）
             {
-                if (recvMsg(call, msg) < 0)
+                if (recvMsg(call, recv_msg) < 0)
                 {
                     cout << "Receive error." << endl;
                 }
@@ -254,4 +259,5 @@ Server::~Server()
 {
     close(sock_fd);
     close(epoll_fd);
+    mysql_log.close();
 }

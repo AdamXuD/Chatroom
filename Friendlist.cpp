@@ -2,25 +2,9 @@
 #include "Server.h"
 
 /*客户端部分*/
-void Client::makeFriend(string command) //添加好友
-{
-    setMsg(msg, COMMAND, acc.account, command.substr(sizeof("makefriend ") - 1).c_str(), "MAKEFRIEND");
-    if (sendMsg(msg, sock_fd) < 0)
-    {
-        cout << "请求失败，请检查网络连接！" << endl;
-    }
-}
-void Client::deleteFriend(string command) //删除好友
-{
-    setMsg(msg, COMMAND, acc.account, command.substr(sizeof("delete ") - 1).c_str(), "DELETEFRIEND");
-    if (sendMsg(msg, sock_fd) < 0)
-    {
-        cout << "请求失败，请检查网络连接！" << endl;
-    }
-}
 void Client::queryFriendList() //请求好友列表
 {
-    setMsg(msg, COMMAND, acc.account, nullptr, "QUERYFRIENDLIST");
+    setMsg(msg, QUERYFRIENDLIST, acc.account, nullptr, nullptr);
     if (sendMsg(msg, sock_fd) < 0)
     {
         cout << "请求失败，请检查网络连接！" << endl;
@@ -28,238 +12,217 @@ void Client::queryFriendList() //请求好友列表
     else
     {
         cout << "正在请求好友列表..." << endl;
-        char friendList[1536][32] = {0};
         fstream fl;
         fl.open("friendlist", ios::out);
+        fl << "account flag" << endl;
         while (1)
         {
-            sleep(1);
-            recvMsg(sock_fd, (char *)friendList);
-            if (strEqual(friendList[0], "account"))
+            recvMsg(sock_fd, msg);
+            if (msg.type == LIST)
             {
-                fl << "account ";
-                fl << "flag" << endl;
-                for (int i = 2; friendList[i] != "\0"; i += 2)
+                if (strcmp(msg.content, "") != 0)
                 {
-                    friendlist[friendList[i]] = atoi(friendList[i + 1]);
-                    fl << friendList[i] << " ";
-                    fl << friendList[i + 1] << endl;
+                    fl << msg.fromUser << " " << msg.content << endl;
+                    friendlist[msg.fromUser] = atoi(msg.content);
+                    cout << msg.fromUser << " ";
+                    switch (atoi(msg.content))
+                    {
+                    case 0:
+                    {
+                        cout << "[好友]" << endl;
+                        break;
+                    }
+                    case 1:
+                    {
+                        cout << "[群组]" << endl;
+                        break;
+                    }
+                    case 2:
+                    {
+                        cout << "[特别关心]" << endl;
+                        break;
+                    }
+                    case 3:
+                    {
+                        cout << "[黑名单]" << endl;
+                        break;
+                    }
+                    default:
+                    {
+                        cout << "[ERROR]" << endl;
+                        break;
+                    }
+                    }
                 }
-                break;
+                else
+                {
+                    break;
+                }
             }
         }
         fl.close();
     }
 }
-void Client::setSuki(string command) //设为特别关心
-{
-    setMsg(msg, COMMAND, acc.account, command.substr(sizeof("suki ") - 1).c_str(), "SUKI");
-    if (sendMsg(msg, sock_fd) < 0)
-    {
-        cout << "请求失败，请检查网络连接！" << endl;
-    }
-}
-void Client::setKirai(string command) //拉黑名单
-{
-    setMsg(msg, COMMAND, acc.account, command.substr(sizeof("kirai ") - 1).c_str(), "KIRAI");
-    if (sendMsg(msg, sock_fd) < 0)
-    {
-        cout << "请求失败，请检查网络连接！" << endl;
-    }
-}
-void Client::dealwithQuery(string command)
-{
-    setMsg(msg, COMMAND, acc.account, nullptr, command.c_str());
-    if (sendMsg(msg, sock_fd) < 0)
-    {
-        cout << "请求失败，请检查网络连接！" << endl;
-    }
-}
-
-
 /*客户端部分*/
 
 /*服务端部分*/
+bool Server::targetExisted(bool isFriend)
+{
+    if (isFriend)
+    {
+        sprintf(query, "select account from %s_friendlist where account='%s'", recv_msg.fromUser, recv_msg.content);
+    }
+    else
+    {
+        sprintf(query, "select account from group_%s where account='%s'", recv_msg.content, recv_msg.fromUser);
+    }
+    mysql_query(&mysql, query);
+    MYSQL_RES res;
+    MYSQL_ROW row;
+    res = *mysql_store_result(&mysql);
+    row = mysql_fetch_row(&res);
+    if (row != NULL)
+    {
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+}
 void Server::makeFriendQuery() //添加好友
 {
-    char query[5120];
-    sprintf(query, "select account from userinfo where account='%s';", msg.toUser);
-    if (mysql_query(&mysql, query) == 0)
+    sprintf(query, "select account from userinfo where account='%s';", recv_msg.content);
+    mysql_query(&mysql, query);
+    MYSQL_RES res;
+    MYSQL_ROW row;
+    res = *mysql_store_result(&mysql);
+    row = mysql_fetch_row(&res);
+    if (row != NULL)
     {
-        MYSQL_RES res;
-        MYSQL_ROW row;
-        res = *mysql_store_result(&mysql);
-        row = mysql_fetch_row(&res);
-        if (row != NULL)
+        if (targetExisted(true) == false)
         {
-            char content[4096], toUser[32];
-            strcpy(toUser, msg.toUser);
-            sprintf(content, "用户 %s 请求添加你为好友！", msg.fromUser);
-            sprintf(query, "insert into %s_querybox values (null, '%s', '%s', '%s', '%s');", msg.toUser, "FRIEND", msg.fromUser, msg.toUser, content);
-            setMsg(msg, PRIVTALK, ADMIN, toUser, content);
-            if (mysql_query(&mysql, query) == 0)
-            {
-                Privatetalk(msg);
-            }
-            else
-            {
-                cout << mysql_error(&mysql) << endl;
-            }
+            sprintf(content, "用户 %s 请求添加你为好友！", recv_msg.fromUser);
+            sprintf(query, "insert into %s_querybox values (null, '%s', '%s', '%s', '%s');", recv_msg.toUser, "FRIEND", recv_msg.fromUser, recv_msg.toUser, content);
+            mysql_query(&mysql, query);
+            adminMsg(content, recv_msg.toUser);
         }
         else
         {
-            char fromUser[32];
-            strcpy(fromUser, msg.fromUser);
-            setMsg(msg, PRIVTALK, ADMIN, fromUser, "好友添加请求失败，请确认该用户是否存在！");
-            Privatetalk(msg);
-        }
-    }
-}
-void Server::dealwithQuery()
-{
-    string command = msg.content;
-    int queryID;
-    char query[1024];
-    queryID = atoi(command.substr(sizeof("accept ") - 1).c_str());
-    sprintf(query, "select type, fromuser, target from %s_querybox where id = %d;", msg.fromUser, queryID);
-    if (mysql_query(&mysql, query) == 0)
-    {
-        MYSQL_RES res;
-        MYSQL_ROW row;
-        res = *mysql_store_result(&mysql);
-        row = mysql_fetch_row(&res);
-        if (row != NULL)
-        {
-            char type[10], fromUser[32], toUser[32];
-            strcpy(type, row[0]);
-            strcpy(fromUser, row[1]);
-            strcpy(toUser, row[2]);
-            if (strEqual(command, "accept "))
-            {
-                if (strEqual(type, "FRIEND"))
-                {
-                    if (addFriend(toUser, fromUser) == 0)
-                    {
-                        sprintf(query, "delete from %s_querybox where id = %d", msg.fromUser, queryID);
-                        mysql_query(&mysql, query);
-                    }
-                }
-                else if (strEqual(type, "GROUP"))
-                {
-                    if(addGroupMember(toUser, fromUser) == 0)
-                    {
-                        sprintf(query, "delete from %s_querybox where id = %d", msg.fromUser, queryID);
-                        mysql_query(&mysql, query);
-                    }
-                }
-            }
-            else if (strEqual(command, "refuse "))
-            {
-                sprintf(query, "delete from %s_querybox where id = %d", msg.fromUser, queryID);
-                mysql_query(&mysql, query);
-            }
-        }
-    }
-}
-
-int Server::addFriend(char *account, char *whichfriend)
-{
-    char query[1024], content[4096];
-    sprintf(query, "insert into %s_friendlist values ('%s', '0');", account, whichfriend);
-    if (mysql_query(&mysql, query) != 0)
-    {
-        cout << "Query error: " << mysql_error(&mysql) << endl;
-        setMsg(msg, PRIVTALK, ADMIN, account, "请求失败，请稍后再试！");
-        Privatetalk(msg);
-        return -1;
-    }
-    sprintf(query, "insert into %s_friendlist values ('%s', '0');", whichfriend, account);
-    if (mysql_query(&mysql, query) != 0)
-    {
-        cout << "Query error: " << mysql_error(&mysql) << endl;
-        sprintf(query, "delete from %s_friendlist where account = '%s'", account, whichfriend);
-        mysql_query(&mysql, query);
-        setMsg(msg, PRIVTALK, ADMIN, account, "请求失败，请稍后再试！");
-        Privatetalk(msg);
-        return -1;
-    }
-    Msg msg;
-    sprintf(content, "你已经和 %s 是好友啦！请手动刷新好友列表（/queryfriendlist），和他打招呼吧！", whichfriend);
-    setMsg(msg, PRIVTALK, ADMIN, account, content);
-    Privatetalk(msg);
-    sprintf(content, "你已经和 %s 是好友啦！请手动刷新好友列表（/queryfriendlist），和他打招呼吧！", account);
-    setMsg(msg, PRIVTALK, ADMIN, whichfriend, content);
-    Privatetalk(msg);
-    return 0;
-}
-
-void Server::deleteFriend(char *account, char *whichfriend) //删除好友
-{
-    char query[1024];
-    sprintf(query, "delete from %s_friendlist where account = '%s';", account, whichfriend);
-    mysql_query(&mysql, query);
-    sprintf(query, "delete from %s_friendlist where account = '%s';", whichfriend, account);
-    mysql_query(&mysql, query);
-}
-void Server::setSuki() //设为特别关心
-{
-    char query[4096];
-    sprintf(query, "update %s_friendlist set flag = '2' where account = %s", msg.fromUser, msg.toUser);
-    mysql_query(&mysql, query);
-}
-void Server::setKirai() //拉黑名单
-{
-    char query[4096];
-    sprintf(query, "update %s_friendlist set flag = '3' where account = %s", msg.fromUser, msg.toUser);
-    mysql_query(&mysql, query);
-}
-void Server::createFriendList(char *account) //注册完成时创建该用户的好友列表
-{
-    char query[4096];
-    sprintf(query, "create table %s_friendlist like friendlist;", account);
-    if (mysql_query(&mysql, query) == 0)
-    {
-        cout << "New friend list is been created." << endl;
-    }
-}
-void Server::createQuerybox(char *account) //注册完成时创建该用户的好友列表
-{
-    char query[4096];
-    sprintf(query, "create table %s_querybox like querybox;", account);
-    if (mysql_query(&mysql, query) == 0)
-    {
-        cout << "New querybox is been created." << endl;
-    }
-}
-
-void Server::sendFriendList(int call) //发送好友列表（登录后马上调用，以获取该用户的好友列表）
-{
-    char query[1024], friendList[1536][32] = {0};
-    strcpy(friendList[0], "account");
-    strcpy(friendList[1], "flag");
-    sprintf(query, "select account, flag from %s_friendlist", msg.fromUser);
-    if (mysql_query(&mysql, query) == 0)
-    {
-        MYSQL_RES *res;
-        MYSQL_ROW row;
-        res = mysql_store_result(&mysql);
-        if (res != NULL)
-        {
-            for (int i = 2; row = mysql_fetch_row(res); i += 2)
-            {
-                strcpy(friendList[i], row[0]);
-                strcpy(friendList[i + 1], row[1]);
-            }
-        }
-        else
-        {
-            cout << "Query friendlist error:" << mysql_error(&mysql) << endl;
+            adminMsg("该用户已是您的好友，无需重复添加！", recv_msg.fromUser);
         }
     }
     else
     {
-        cout << "Query friendlist error:" << mysql_error(&mysql) << endl;
+        adminMsg("好友添加请求失败，请确认该用户是否存在！", recv_msg.fromUser);
     }
-    sendMsg((char *)friendList, call);
+}
+
+void Server::dealwithQuery()
+{
+    sprintf(query, "select type, fromuser, target from %s_querybox where id = %d;", recv_msg.fromUser, recv_msg.content);
+    mysql_query(&mysql, query);
+    MYSQL_RES res;
+    MYSQL_ROW row;
+    res = *mysql_store_result(&mysql);
+    row = mysql_fetch_row(&res);
+    if (row != NULL)
+    {
+        char type[10], fromUser[32], target[32];
+        strcpy(type, row[0]);
+        strcpy(fromUser, row[1]);
+        strcpy(target, row[2]);
+        if (recv_msg.type == ACCEPT)
+        {
+            if (strEqual(type, "FRIEND"))
+            {
+                addFriend(target, fromUser);
+                sprintf(query, "delete from %s_querybox where id = %d", recv_msg.fromUser, recv_msg.content);
+                mysql_query(&mysql, query);
+            }
+            else if (strEqual(type, "GROUP"))
+            {
+                addGroupMember(target, fromUser);
+                sprintf(query, "delete from %s_querybox where id = %d", recv_msg.fromUser, recv_msg.content);
+                mysql_query(&mysql, query);
+            }
+        }
+        else if (recv_msg.type == REFUSE)
+        {
+            sprintf(query, "delete from %s_querybox where id = %d", recv_msg.fromUser, recv_msg.content);
+            mysql_query(&mysql, query);
+        }
+    }
+    else
+    {
+        adminMsg("请求失败，请检查请求ID是否正确！", recv_msg.fromUser);
+    }
+}
+
+void Server::addFriend(char *account, char *whichfriend)
+{
+    sprintf(query, "insert into %s_friendlist values ('%s', '0');", account, whichfriend);
+    mysql_query(&mysql, query);
+    sprintf(query, "insert into %s_friendlist values ('%s', '0');", whichfriend, account);
+    mysql_query(&mysql, query);
+    sprintf(content, "你已经和 %s 是好友啦！请手动刷新好友列表（/queryfriendlist），和他打招呼吧！", whichfriend);
+    adminMsg(content, account);
+    sprintf(content, "你已经和 %s 是好友啦！请手动刷新好友列表（/queryfriendlist），和他打招呼吧！", account);
+    adminMsg(content, whichfriend);
+}
+
+void Server::deleteFriend() //删除好友
+{
+    sprintf(query, "delete from %s_friendlist where account = '%s';", recv_msg.fromUser, recv_msg.content);
+    mysql_query(&mysql, query);
+    sprintf(query, "delete from %s_friendlist where account = '%s';", recv_msg.content, recv_msg.fromUser);
+    mysql_query(&mysql, query);
+}
+void Server::setFriendFlag() //设为特别关心
+{
+    if (recv_msg.type == SUKI)
+    {
+        sprintf(query, "update %s_friendlist set flag = '2' where account = %s", recv_msg.fromUser, recv_msg.toUser);
+    }
+    else if (recv_msg.type == KIRAI)
+    {
+        sprintf(query, "update %s_friendlist set flag = '3' where account = %s", recv_msg.fromUser, recv_msg.toUser);
+    }
+    mysql_query(&mysql, query);
+}
+void Server::createFriendList() //注册完成时创建该用户的好友列表
+{
+    sprintf(query, "create table %s_friendlist like friendlist;", acc.account);
+    mysql_query(&mysql, query);
+    cout << "New friend list is been created." << endl;
+}
+void Server::createQuerybox() //注册完成时创建该用户的好友列表
+{
+    sprintf(query, "create table %s_querybox like querybox;", acc.account);
+    mysql_query(&mysql, query);
+    cout << "New querybox is been created." << endl;
+}
+
+void Server::sendFriendList(int call) //发送好友列表（登录后马上调用，以获取该用户的好友列表）
+{
+    sprintf(query, "select account, flag from %s_friendlist", recv_msg.fromUser);
+    mysql_query(&mysql, query);
+    MYSQL_RES *res;
+    MYSQL_ROW row;
+    res = mysql_store_result(&mysql);
+    while (row = mysql_fetch_row(res))
+    {
+        if (row != NULL)
+        {
+            setMsg(send_msg, LIST, row[0], nullptr, row[1]);
+            sendMsg(send_msg, call);
+        }
+        else
+        {
+            setMsg(send_msg, LIST, nullptr, nullptr, nullptr);
+            sendMsg(send_msg, call);
+            break;
+        }
+    }
 }
 /*服务端部分*/

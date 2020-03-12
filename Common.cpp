@@ -36,6 +36,13 @@ void input(int &num, const char *tips)
     num = atoi(tmp);
 }
 
+int input(const char *tips = nullptr)
+{
+    int i;
+    cin >> i;
+    return i;
+}
+
 int sendMsg(Msg &msg, int fd) //发送消息用接口
 {
     char buf[65535];
@@ -175,4 +182,13 @@ void addepollfd(int epoll_fd, int fd) //增加监听描述符
     tmp.data.fd = fd;
     epoll_ctl(epoll_fd, EPOLL_CTL_ADD, fd, &tmp);
     fcntl(fd, F_SETFL, fcntl(fd, F_GETFD, 0) | O_NONBLOCK); //读取标识符状态并通过位运算设置其为无阻塞
+}
+
+void Mysql_query(MYSQL *mysql, const char *q)
+{
+    time_t a;
+    if (mysql_query(mysql, q) != 0)
+    {
+
+    }
 }

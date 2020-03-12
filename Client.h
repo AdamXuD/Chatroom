@@ -13,25 +13,19 @@ public:
     void fileLogin(); //本地凭据登录
     static void *sendHeartBeats(void *pointer); //定时发送心跳包
     void dealwithmsg(char *Target);
-    void dealwithQuery(string command);
-
     void Start();
+    void dealWithQuery(string command);
     /*好友列表部分*/
-    void makeFriend(string command);                   //添加好友
-    void deleteFriend(string command);                 //删除好友
     void queryFriendList(); //请求好友列表
-    void setSuki(string command);  //设为特别关心
-    void setKirai(string command);          //拉黑名单
     /*好友列表部分*/
 
     /*群聊相关权限部分*/
-    void createGroupTalk(string command);      //创建群聊
-    void setGroupAdmin(string command, string toGroup); //设置管理员
-    void joinGroup(string command);                     //加入群聊
-    void leaveGroup(string Group);           //主动离开群聊
-    void deleteGroupMember(string command, string Group);  //踢人
-    void Grouptalk(string command);            //处理用户群聊请求
-    void queryGroupMember(string Group);
+    void Grouptalk(string command);
+    void setGroupAdmin(string command, string toGroup);
+    void leaveGroup(string toGroup);
+    void deleteGroupMember(string command, string toGroup);
+
+    void queryGroupMember(char *Group);
     /*群聊与相关权限部分*/
 
     /*私聊部分*/
