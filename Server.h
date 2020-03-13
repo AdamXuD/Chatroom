@@ -8,7 +8,7 @@ public:
     void Prepare();
     void Mysql_query(MYSQL *mysql, const char *q);
 
-    void adminMsg(char *content, char *target); //错误反馈
+    void adminMsg(const char *content, char *target); //错误反馈
 
     void addonlinelist(int clnt_fd, char *acc = nullptr);//储存在线用户
     void BroadcastMsg(int call);               //群发

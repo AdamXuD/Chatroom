@@ -36,7 +36,7 @@ void input(int &num, const char *tips)
     num = atoi(tmp);
 }
 
-int input(const char *tips = nullptr)
+int input()
 {
     int i;
     cin >> i;

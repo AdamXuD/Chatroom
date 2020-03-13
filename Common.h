@@ -76,7 +76,7 @@ void clear();                       //清屏函数
 void user_wait();                   //用户等待
 void input(char *ptr, const char *tips = nullptr); //输入框
 void input(int &num, const char *tips = nullptr); //输入框
-int input(const char *tips = nullptr);
+int input();
 void setMsg(Msg &msg, const int type, const char *fromUser = nullptr, const char *toUser = nullptr, const char *content = nullptr); //对消息对象赋值
 bool strEqual(string str1, const char *str2);  //判断字符串是否相等（或1是否包含2）
 bool strEqual(const char *str1, const char *str2); //判断字符串是否相等（或1是否包含2）

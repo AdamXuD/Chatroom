@@ -1,6 +1,6 @@
 #include "Server.h"
 
-void Server::adminMsg(char *content, char *target)
+void Server::adminMsg(const char *content, char *target)
 {
     setMsg(send_msg, PRIVTALK, ADMIN, target, content);
     Privatetalk(send_msg);
