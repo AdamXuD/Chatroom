@@ -1,7 +1,7 @@
 #include "Client.h"
 
 extern char content[5120];
-extern char content[5120];
+extern char query[5120];
 
 Client::Client() //构造
 {
