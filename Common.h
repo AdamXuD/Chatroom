@@ -54,8 +54,6 @@
 
 using namespace std;
 
-char content[4096];
-char query[5120];
 
 struct Msg //信息类
 {
@@ -83,10 +81,6 @@ bool strEqual(const char *str1, const char *str2); //判断字符串是否相等
 
 int sendMsg(Msg &msg, int fd);                   //发送消息用接口
 int recvMsg(int fd, Msg &msg);                 //接收消息用接口
-// int sendMsg(Account &msg, int fd);                 //发送消息用接口
-// int recvMsg(int fd, Account &msg);                 //接收消息用接口
-int sendMsg(char *msg, int fd);           //发送消息用接口
-int recvMsg(int fd, char *msg);           //接收消息用接口
 
 int sendHeartBeats(int fd, Msg &msg);//心跳包发送
 void addepollfd(int epoll_fd, int fd); //增加监听描述符

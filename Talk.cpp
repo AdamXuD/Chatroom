@@ -1,6 +1,9 @@
 #include "Server.h"
 #include "Client.h"
 
+extern char content[5120];
+extern char query[5120];
+
 /*客户端部分*/
 /*群聊相关权限部分*/
 void Client::queryGroupMember(char *Group)

@@ -1,5 +1,8 @@
 #include "Client.h"
 
+extern char content[5120];
+extern char content[5120];
+
 Client::Client() //构造
 {
     sock_fd = -1;

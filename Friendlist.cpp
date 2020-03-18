@@ -1,6 +1,9 @@
 #include "Client.h"
 #include "Server.h"
 
+extern char content[5120];
+extern char query[5120];
+
 /*客户端部分*/
 void Client::queryFriendList() //请求好友列表
 {
@@ -120,7 +123,7 @@ void Server::makeFriendQuery() //添加好友
 
 void Server::dealwithQuery()
 {
-    sprintf(query, "select type, fromuser, target from %s_querybox where id = %d;", recv_msg.fromUser, recv_msg.content);
+    sprintf(query, "select type, fromuser, target from %s_querybox where id = %s;", recv_msg.fromUser, recv_msg.content);
     mysql_query(&mysql, query);
     MYSQL_RES res;
     MYSQL_ROW row;
@@ -137,19 +140,19 @@ void Server::dealwithQuery()
             if (strEqual(type, "FRIEND"))
             {
                 addFriend(target, fromUser);
-                sprintf(query, "delete from %s_querybox where id = %d", recv_msg.fromUser, recv_msg.content);
+                sprintf(query, "delete from %s_querybox where id = %s", recv_msg.fromUser, recv_msg.content);
                 mysql_query(&mysql, query);
             }
             else if (strEqual(type, "GROUP"))
             {
                 addGroupMember(target, fromUser);
-                sprintf(query, "delete from %s_querybox where id = %d", recv_msg.fromUser, recv_msg.content);
+                sprintf(query, "delete from %s_querybox where id = %s", recv_msg.fromUser, recv_msg.content);
                 mysql_query(&mysql, query);
             }
         }
         else if (recv_msg.type == REFUSE)
         {
-            sprintf(query, "delete from %s_querybox where id = %d", recv_msg.fromUser, recv_msg.content);
+            sprintf(query, "delete from %s_querybox where id = %s", recv_msg.fromUser, recv_msg.content);
             mysql_query(&mysql, query);
         }
     }

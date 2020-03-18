@@ -1,5 +1,8 @@
 #include "Server.h"
 
+extern char content[5120];
+extern char query[5120];
+
 void Server::adminMsg(const char *content, char *target)
 {
     setMsg(send_msg, PRIVTALK, ADMIN, target, content);

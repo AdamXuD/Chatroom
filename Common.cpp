@@ -1,5 +1,8 @@
 #include "Common.h"
 
+char content[5120];
+char query[5120];
+
 void clear()
 {
 #ifdef __GNUC__
