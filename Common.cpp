@@ -30,19 +30,19 @@ void input(char *ptr, const char *tips) //输入框
 
 void input(int &num, const char *tips)
 {
-    char tmp[10];
     if (tips != nullptr)
     {
         cout << tips << endl;
     }
-    cin.getline(tmp, 10);
-    num = atoi(tmp);
+    cin >> num;
+    getchar();
 }
 
 int input()
 {
     int i;
     cin >> i;
+    getchar();
     return i;
 }
 

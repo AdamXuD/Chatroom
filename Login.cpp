@@ -7,12 +7,12 @@ extern char query[5120];
 /*客户端部分*/
 void Client::Login() //表登录接口
 {
-    clear();
-    cout << "是否拥有聊天室账户？" << endl;
-    cout << "1.我已拥有账户，希望登录。" << endl;
-    cout << "2.我还没有聊天室账户，希望注册。" << endl;
     while (isLogin == false)
     {
+        clear();
+        cout << "是否拥有聊天室账户？" << endl;
+        cout << "1.我已拥有账户，希望登录。" << endl;
+        cout << "2.我还没有聊天室账户，希望注册。" << endl;
         switch (input())
         {
         case 1:
@@ -81,34 +81,14 @@ void Client::Signup()
     char password1[32];
     char password2[32];
     input(acc.account, "请输入昵称：");
-    while (isLogin == false)
+    while (1)
     {
         strcpy(password1, getpass("请输入密码："));
         strcpy(password2, getpass("请再次输入密码："));
         if (strcmp(password1, password2) == 0)
         {
             strcpy(acc.pwd, crypt(password1, password1));
-            cout << "注册中……" << endl;
-            memcpy(content, &acc, BUFSIZE);
-            setMsg(msg, SIGNUP, nullptr, nullptr, content);
-            if (sendMsg(msg, sock_fd) > 0) //发送注册请求
-            {
-                sleep(1);
-                recvMsg(sock_fd, msg);
-                if (msg.type == SUCCESS)
-                {
-                    cout << "注册成功！" << endl;
-                    cout << "您的用户名是：" << acc.account << endl;
-                    cout << "您的用户名是您登入聊天室的唯一凭据，请妥善保管您的用户名与密码！" << endl;
-                    user_wait();
-                    Login(acc);
-                }
-                else
-                {
-                    cout << "请求提交失败，请检查网络设置……" << endl;
-                    user_wait();
-                }
-            }
+            break;
         }
         else
         {
@@ -116,51 +96,69 @@ void Client::Signup()
             user_wait();
         }
     }
-}
-void Client::fileLogin()
-{
-    while (isLogin == false)
+    cout << "注册中……" << endl;
+    memcpy(content, &acc, BUFSIZE);
+    setMsg(msg, SIGNUP, nullptr, nullptr, content);
+    if (sendMsg(msg, sock_fd) > 0) //发送注册请求
     {
-        fstream userinfo;
-        userinfo.open("userinfo", ios::in);
-        if (!userinfo)
+        sleep(1);
+        recvMsg(sock_fd, msg);
+        if (msg.type == SUCCESS)
         {
-            userinfo.close();
-            Login();
+            cout << "注册成功！" << endl;
+            cout << "您的用户名是：" << acc.account << endl;
+            cout << "您的用户名是您登入聊天室的唯一凭据，请妥善保管您的用户名与密码！" << endl;
+            user_wait();
+            Login(acc);
         }
         else
         {
-            userinfo.close();
-            while (isLogin == false)
+            cout << "请求提交失败，请检查网络设置……" << endl;
+            user_wait();
+        }
+    }
+}
+void Client::fileLogin()
+{
+    fstream userinfo;
+    userinfo.open("userinfo", ios::in);
+    if (!userinfo)
+    {
+        userinfo.close();
+        Login();
+    }
+    else
+    {
+        userinfo.close();
+        while (isLogin == false)
+        {
+            clear();
+            cout << "本地已有账户登录信息，是否登录？" << endl;
+            cout << "1.是" << endl;
+            cout << "2.否" << endl;
+            switch (input())
             {
-                clear();
-                cout << "本地已有账户登录信息，是否登录？" << endl;
-                cout << "1.是" << endl;
-                cout << "2.否" << endl;
-                switch (input())
-                {
-                case 1:
-                {
-                    string tmp;
-                    fstream userinfo;
-                    userinfo.open("userinfo", ios::in);
-                    getline(userinfo, tmp);
-                    tmp.erase(0, 4);
-                    strcpy(acc.account, tmp.c_str());
-                    getline(userinfo, tmp);
-                    tmp.erase(0, 4);
-                    strcpy(acc.pwd, tmp.c_str());
-                    Login(acc);
-                    break;
-                }
-                case 2:
-                {
-                    Login();
-                    break;
-                }
-                default:
-                    cout << "输入非法，请重新输入！" << endl;
-                }
+            case 1:
+            {
+                string tmp;
+                fstream userinfo;
+                userinfo.open("userinfo", ios::in);
+                getline(userinfo, tmp);
+                tmp.erase(0, 4);
+                strcpy(acc.account, tmp.c_str());
+                getline(userinfo, tmp);
+                tmp.erase(0, 4);
+                strcpy(acc.pwd, tmp.c_str());
+                Login(acc);
+                break;
+            }
+            case 2:
+            {
+                Login();
+                break;
+            }
+            default:
+                cout << "输入非法，请重新输入！" << endl;
             }
         }
     }
