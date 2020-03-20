@@ -2,7 +2,7 @@
 #include "Client.h"
 
 extern char content[5120];
-extern char query[5120];
+extern char query[10240];
 
 /*客户端部分*/
 /*群聊相关权限部分*/
@@ -21,7 +21,7 @@ void Client::queryGroupMember(char *Group)
         ml << "account flag" << endl;
         while (1)
         {
-            recvMsg(sock_fd, msg);
+            recvMsg(sock_fd, msg, true);
             if (msg.type == LIST)
             {
                 if (strcmp(msg.content, "") != 0)
@@ -64,7 +64,7 @@ void Client::queryGroupMember(char *Group)
 void Client::Grouptalk(string command) //处理用户群聊请求
 {
     char toGroup[32];
-    strcpy(toGroup, command.substr(sizeof("group ") - 1).c_str());
+    strcpy(toGroup, command.substr(sizeof("grouptalk ") - 1).c_str());
     cout << "你正在 " << toGroup << " 群内发言：" << endl;
     setMsg(msg, PIPE, nullptr, toGroup, nullptr);
     sendMsg(msg, pipe_fd[1]);
@@ -151,8 +151,8 @@ void Client::Privatetalk(string command) //处理用户私聊请求
 /*群聊及其权限部分*/
 int Server::groupPermission(char *Group, char *Member)
 {
-    sprintf(query, "select flag from group_%s where account = '%s';", Group, Member);
-    mysql_query(&mysql, query);
+    sprintf(query, "select flag from `group_%s` where account = '%s';", Group, Member);
+    Mysql_query(&mysql, query);
     MYSQL_RES res;
     MYSQL_ROW row;
     res = *mysql_store_result(&mysql);
@@ -166,8 +166,8 @@ int Server::groupPermission(char *Group, char *Member)
 }
 void Server::SendGroupMember(int call)
 {
-    sprintf(query, "select account, flag from group_%s", recv_msg.toUser);
-    mysql_query(&mysql, query);
+    sprintf(query, "select account, flag from `group_%s`", recv_msg.toUser);
+    Mysql_query(&mysql, query);
     MYSQL_RES *res;
     MYSQL_ROW row;
     res = mysql_store_result(&mysql);
@@ -186,11 +186,11 @@ void Server::SendGroupMember(int call)
         }
     }
 }
-void Server::sendAdminMsg(Msg message, bool sw_query, char *fromUser, char *Group)
+void Server::sendAdminMsg(Msg message, bool sw_query, char *Group, char *fromUser)
 {
     char memberlist[1536][32] = {0};
-    sprintf(query, "select account from group_%s where flag = '1' or flag = '2';", recv_msg.content);
-    if (mysql_query(&mysql, query) == 0)
+    sprintf(query, "select account from `group_%s` where flag = '1' or flag = '2';", Group);
+    if (Mysql_query(&mysql, query) == 0)
     {
         MYSQL_RES *res;
         MYSQL_ROW row;
@@ -200,6 +200,17 @@ void Server::sendAdminMsg(Msg message, bool sw_query, char *fromUser, char *Grou
             for (int i = 0; row = mysql_fetch_row(res); i++)
             {
                 strcpy(memberlist[i], row[0]);
+            }
+        }
+    }
+    if (sw_query)
+    {
+        if (fromUser != nullptr && Group != nullptr)
+        {
+            for (int i = 0; strcmp(memberlist[i], "") != 0; i++)
+            {
+                sprintf(query, "insert into %s_querybox values (null, '%s', '%s', '%s', '%s');", memberlist[i], "GROUP", fromUser, Group, message.content);
+                Mysql_query(&mysql, query);
             }
         }
     }
@@ -214,41 +225,34 @@ void Server::sendAdminMsg(Msg message, bool sw_query, char *fromUser, char *Grou
             }
         }
     }
-    if (sw_query)
-    {
-        if (fromUser != nullptr && Group != nullptr)
-        {
-            for (int i = 0; strcmp(memberlist[i], "") != 0; i++)
-            {
-                sprintf(query, "insert into %s_querybox values (null, '%s', '%s', '%s', '%s');", memberlist[i], "GROUP", fromUser, Group, message.content);
-                mysql_query(&mysql, query);
-            }
-        }
-    }
 }
 void Server::createGroupTalk() //创建群聊
 {
     sprintf(query, "insert into groupinfo values ('%s')", recv_msg.content);
-    if (mysql_query(&mysql, query) != 0)
+    if (Mysql_query(&mysql, query) != 0)
     {
         adminMsg("创建群组失败，可能是同名群组已存在！", recv_msg.fromUser);
         return;
     }
-    sprintf(query, "create table group_%s like group;", recv_msg.content);
-    mysql_query(&mysql, query);
-    sprintf(query, "insert into %s_friendlist values ('%s', 1);", recv_msg.fromUser, recv_msg.content);
-    mysql_query(&mysql, query);
+    sprintf(query, "create table `group_%s` like `group`;", recv_msg.content);
+    Mysql_query(&mysql, query);
+    sprintf(query, "insert into %s_friendlist values ('%s', '1');", recv_msg.fromUser, recv_msg.content);
+    Mysql_query(&mysql, query);
+    sprintf(query, "insert into group_%s values ('%s', '2');", recv_msg.content, recv_msg.fromUser);
+    Mysql_query(&mysql, query);
     adminMsg("群组创建成功，请手动刷新好友列表（/queryfriendlist）！", recv_msg.fromUser);
 }
 void Server::addGroupMember(char *Group, char *Member)
 {
-    sprintf(query, "insert into group_%s values ('%s', '0');", Group, Member);
-    mysql_query(&mysql, query);
-    sprintf(query, "insert into %s_friendlist values ('%s', 1);", Member, Group);
-    mysql_query(&mysql, query);
+    sprintf(query, "insert into `group_%s` values ('%s', '0');", Group, Member);
+    Mysql_query(&mysql, query);
+    sprintf(query, "insert into %s_friendlist values ('%s', '1');", Member, Group);
+    Mysql_query(&mysql, query);
     sprintf(content, "%s 加入群聊 %s 啦！", Member, Group);
     setMsg(send_msg, GROUPTALK, ADMIN, Group, content);
     Grouptalk(send_msg);
+    sprintf(content, "你已加入群聊 %s 啦！", Group);
+    adminMsg(content, Member);
 }
 void Server::setGroupAdmin() //设置管理员
 {
@@ -258,8 +262,8 @@ void Server::setGroupAdmin() //设置管理员
     strcpy(Group, recv_msg.toUser);
     if (groupPermission(Group, fromM) > groupPermission(Group, toM))
     {
-        sprintf(query, "update Group_%s set flag = '1' where account = '%s'", Group, toM);
-        mysql_query(&mysql, query);
+        sprintf(query, "update `group_%s` set flag = '1' where account = '%s'", Group, toM);
+        Mysql_query(&mysql, query);
         sprintf(content, "%s 已经被设置成管理员。", toM);
         setMsg(send_msg, GROUPTALK, ADMIN, fromM, content);
         Grouptalk(send_msg);
@@ -271,8 +275,8 @@ void Server::setGroupAdmin() //设置管理员
 }
 void Server::joinGroupQuery() //处理加入群聊请求
 {
-    sprintf(query, "select group from groupinfo where group='%s';", recv_msg.content);
-    if (mysql_query(&mysql, query) == 0)
+    sprintf(query, "select `group` from groupinfo where `group`='%s';", recv_msg.content);
+    if (Mysql_query(&mysql, query) == 0)
     {
         MYSQL_RES res;
         MYSQL_ROW row;
@@ -282,9 +286,9 @@ void Server::joinGroupQuery() //处理加入群聊请求
         {
             if (targetExisted(false) == 0)
             {
-                sprintf(send_msg.content, "用户 %s 请求加入 %s 群聊！", recv_msg.fromUser, recv_msg.content);
+                sprintf(content, "用户 %s 请求加入 %s 群聊！", recv_msg.fromUser, recv_msg.content);
                 setMsg(send_msg, PRIVTALK, ADMIN, nullptr, content);
-                sendAdminMsg(send_msg, true, recv_msg.fromUser, recv_msg.content);
+                sendAdminMsg(send_msg, true, recv_msg.content, recv_msg.fromUser);
             }
             else
             {
@@ -299,13 +303,13 @@ void Server::joinGroupQuery() //处理加入群聊请求
 }
 void Server::leaveGroup() //处理离开群聊请求
 {
-    sprintf(query, "delete from group_%s where account = '%s'", recv_msg.toUser, recv_msg.fromUser);
-    mysql_query(&mysql, query);
+    sprintf(query, "delete from `group_%s` where account = '%s'", recv_msg.toUser, recv_msg.fromUser);
+    Mysql_query(&mysql, query);
     sprintf(query, "delete from %s_friendlist where account = '%s'", recv_msg.fromUser, recv_msg.toUser);
-    mysql_query(&mysql, query);
+    Mysql_query(&mysql, query);
     sprintf(content, "%s 已离开 %s 群聊！", recv_msg.fromUser, recv_msg.toUser);
     setMsg(send_msg, GROUPTALK, ADMIN, recv_msg.toUser, content);
-    sendAdminMsg(send_msg, false, recv_msg.fromUser);
+    sendAdminMsg(send_msg, false, recv_msg.toUser ,recv_msg.fromUser);
 }
 void Server::deleteGroupMember() //处理踢出群聊请求
 {
@@ -315,13 +319,13 @@ void Server::deleteGroupMember() //处理踢出群聊请求
     strcpy(Group, recv_msg.toUser);
     if (groupPermission(Group, fromM) > groupPermission(Group, toM))
     {
-        sprintf(query, "delete from Group_%s where account = '%s'", Group, toM);
-        mysql_query(&mysql, query);
+        sprintf(query, "delete from `group_%s` where account = '%s'", Group, toM);
+        Mysql_query(&mysql, query);
         sprintf(query, "delete from %s_friendlist where account = '%s'", toM, Group);
-        mysql_query(&mysql, query);
+        Mysql_query(&mysql, query);
         sprintf(content, "%s 已经被移除群聊。", toM);
         setMsg(send_msg, GROUPTALK, ADMIN, Group, content);
-        sendAdminMsg(send_msg, false);
+        sendAdminMsg(send_msg, false, Group);
         sprintf(content, "您已经被移除 %s 群聊。", Group);
         adminMsg(content, toM);
     }
@@ -333,8 +337,8 @@ void Server::deleteGroupMember() //处理踢出群聊请求
 void Server::Grouptalk(Msg message, int call) //处理用户群聊请求
 {
     char query[1024], memberlist[1536][32] = {0};
-    sprintf(query, "select account from group_%s;", recv_msg.toUser);
-    if (mysql_query(&mysql, query) == 0)
+    sprintf(query, "select account from `group_%s`;", message.toUser);
+    if (Mysql_query(&mysql, query) == 0)
     {
         MYSQL_RES *res;
         MYSQL_ROW row;
@@ -354,7 +358,7 @@ void Server::Grouptalk(Msg message, int call) //处理用户群聊请求
     map<int, pair<string, int>>::iterator it;
     for (it = onlinelist.begin(); it != onlinelist.end(); it++)
     {
-        for (int i = 0; memberlist[i] != "\0"; i++)
+        for (int i = 0; strcmp(memberlist[i], ""); i++)
         {
             if (strEqual(it->second.first.c_str(), memberlist[i]))
             {

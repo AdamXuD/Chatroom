@@ -1,7 +1,7 @@
 #include "Client.h"
 
 extern char content[5120];
-extern char query[5120];
+extern char query[10240];
 
 Client::Client() //构造
 {
@@ -109,6 +109,10 @@ void Client::dealwithmsg(char *Target)
         cout << "\033[34m[群聊]\033[0m";
         break;
     }
+    default:
+    {
+        return;
+    }
     }
     if (strEqual(msg.fromUser, Target) || strEqual(msg.fromUser, ADMIN))
     {
@@ -124,6 +128,10 @@ void Client::dealWithQuery(string command)
     if (strEqual(command, "makefriend "))
     {
         setMsg(msg, MAKEFRIEND, acc.account, nullptr, command.substr(sizeof("makefriend ") - 1).c_str());
+    }
+    else if(strEqual(command, "deletefriend "))
+    {
+        setMsg(msg, DELETEFRIEND, acc.account, nullptr, command.substr(sizeof("deletefriend ") - 1).c_str());
     }
     else if (strEqual(command, "accept "))
     {
@@ -209,7 +217,7 @@ void Client::Start() //客户端入口
                 {
                     Privatetalk(command);
                 }
-                else if (strEqual(command, "group "))
+                else if (strEqual(command, "grouptalk "))
                 {
                     Grouptalk(command);
                 }
@@ -240,12 +248,12 @@ void Client::Start() //客户端入口
                 memset(buf, 0, sizeof(buf));
                 if (events[i].data.fd == sock_fd) //epoll响应来自服务器标识符时
                 {
-                    recvMsg(sock_fd, msg);
+                    recvMsg(sock_fd, msg, false);
                     dealwithmsg(Target);
                 }
                 else //管道标识符响应时
                 {
-                    recvMsg(pipe_fd[0], msg);
+                    recvMsg(pipe_fd[0], msg, false);
                     if (msg.type == PIPE)
                     {
                         strcpy(Target, msg.toUser);

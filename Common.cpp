@@ -1,7 +1,7 @@
 #include "Common.h"
 
 char content[5120];
-char query[5120];
+char query[10240];
 
 void clear()
 {
@@ -56,7 +56,7 @@ int sendMsg(Msg &msg, int fd) //发送消息用接口
     return ret;
 }
 
-int recvMsg(int fd, Msg &msg) //接收消息用接口
+int recvMsg(int fd, Msg &msg, bool wait) //接收消息用接口
 {
     char buf[65535];
     int ret = 0;
@@ -71,10 +71,13 @@ int recvMsg(int fd, Msg &msg) //接收消息用接口
         memset(buf, 0, sizeof(buf));
         ret = read(fd, buf, 65535);
         memcpy(&msg, buf, sizeof(msg));
+        if(!wait)
+        {
+            break;
+        }
     }
     return ret;
 }
-
 
 int sendHeartBeats(int fd, Msg &msg)
 {
@@ -134,6 +137,14 @@ void addepollfd(int epoll_fd, int fd) //增加监听描述符
     fcntl(fd, F_SETFL, fcntl(fd, F_GETFD, 0) | O_NONBLOCK); //读取标识符状态并通过位运算设置其为无阻塞
 }
 
+void deleteepollfd(int epoll_fd, int fd)
+{
+    struct epoll_event tmp;         //设置临时变量用于存储描述符属性
+    tmp.events = EPOLLIN | EPOLLET; //设置epoll模式为et
+    tmp.data.fd = fd;
+    epoll_ctl(epoll_fd, EPOLL_CTL_DEL, fd, &tmp);
+}
+
 struct tm *getTime()
 {
     time_t nowtime;
@@ -142,3 +153,12 @@ struct tm *getTime()
     return localtime(&nowtime);
 }
 
+int Mysql_query(MYSQL *mysql, const char *q)
+{
+    int ret;
+    if (ret = mysql_query(mysql, q) != 0)
+    {
+        cout << "Error at Line: " << query << ". Error: "<< mysql_error(mysql) << endl;
+    }
+    return ret;
+}

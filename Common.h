@@ -80,8 +80,11 @@ bool strEqual(string str1, const char *str2);  //判断字符串是否相等（�
 bool strEqual(const char *str1, const char *str2); //判断字符串是否相等（或1是否包含2）
 
 int sendMsg(Msg &msg, int fd);                   //发送消息用接口
-int recvMsg(int fd, Msg &msg);                 //接收消息用接口
+int recvMsg(int fd, Msg &msg, bool wait);        //接收消息用接口
 
-int sendHeartBeats(int fd, Msg &msg);//心跳包发送
+int sendHeartBeats(int fd, Msg &msg);  //心跳包发送
 void addepollfd(int epoll_fd, int fd); //增加监听描述符
+void deleteepollfd(int epoll_fd, int fd);
+
 struct tm *getTime();
+int Mysql_query(MYSQL *mysql, const char *q);

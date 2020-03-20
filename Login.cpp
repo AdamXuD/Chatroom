@@ -2,7 +2,7 @@
 #include "Server.h"
 
 extern char content[5120];
-extern char query[5120];
+extern char query[10240];
 
 /*客户端部分*/
 void Client::Login() //表登录接口
@@ -17,7 +17,7 @@ void Client::Login() //表登录接口
         {
         case 1:
             clear();
-            char password[14];
+            char password[32];
             input(this->acc.account, "请输入用户名：");
             strcpy(password, getpass("请输入密码："));
             strcpy(this->acc.pwd, crypt(password, password));
@@ -35,12 +35,11 @@ void Client::Login(Account acc) //重载里登录接口
 {
     clear();
     cout << "登录中……" << endl;
-    memcpy(content, &acc, BUFSIZE);
-    setMsg(msg, LOGIN, nullptr, nullptr, content);
+    setMsg(msg, LOGIN, acc.account, acc.pwd, nullptr);
     if (sendMsg(msg, sock_fd) > 0) //发送登入请求
     {
         sleep(3);
-        recvMsg(sock_fd, msg);
+        recvMsg(sock_fd, msg, true);
         if (msg.type == SUCCESS)
         {
             isLogin = true;
@@ -97,12 +96,11 @@ void Client::Signup()
         }
     }
     cout << "注册中……" << endl;
-    memcpy(content, &acc, BUFSIZE);
-    setMsg(msg, SIGNUP, nullptr, nullptr, content);
+    setMsg(msg, SIGNUP, acc.account, acc.pwd, nullptr);
     if (sendMsg(msg, sock_fd) > 0) //发送注册请求
     {
         sleep(1);
-        recvMsg(sock_fd, msg);
+        recvMsg(sock_fd, msg, true);
         if (msg.type == SUCCESS)
         {
             cout << "注册成功！" << endl;
@@ -190,14 +188,15 @@ void Server::addonlinelist(int clnt_fd, char *acc)
 void Server::Onlineremind(int call)
 {
     setMsg(send_msg, ALL, ADMIN, nullptr, "Someone is Online.");
-    BroadcastMsg(call);
+    BroadcastMsg(call, send_msg);
 }
 void Server::Login(int call) //登录处理函数
 {
     cout << "A connector is trying to login." << endl;
-    memcpy(&acc, recv_msg.content, BUFSIZE);
+    strcpy(acc.account, recv_msg.fromUser);
+    strcpy(acc.pwd, recv_msg.toUser);
     sprintf(query, "select account, pwd from userinfo where account='%s';", acc.account);
-    mysql_query(&mysql, query);
+    Mysql_query(&mysql, query);
     MYSQL_RES res;
     MYSQL_ROW row;
     res = *mysql_store_result(&mysql);
@@ -230,9 +229,10 @@ void Server::Login(int call) //登录处理函数
 void Server::Signup(int call)
 {
     cout << "A connector is trying to signup." << endl;
-    memcpy(&acc, recv_msg.content, BUFSIZE);
+    strcpy(acc.account, recv_msg.fromUser);
+    strcpy(acc.pwd, recv_msg.toUser);
     sprintf(query, "insert into userinfo values ('%s', '%s');", acc.account, acc.pwd);
-    if (mysql_query(&mysql, query) == 0) //将用户名密码等数据写入数据库
+    if (Mysql_query(&mysql, query) == 0) //将用户名密码等数据写入数据库
     {
         setMsg(send_msg, SUCCESS, nullptr, nullptr, nullptr);
         sendMsg(send_msg, call); //服务端反馈
@@ -244,6 +244,5 @@ void Server::Signup(int call)
     {
         setMsg(send_msg, FAILED, nullptr, nullptr, "注册失败，用户名已存在或服务器错误！");
         sendMsg(send_msg, call); //服务端反馈
-        cout << "Signup failed:" << mysql_error(&mysql) << endl;
     }
 }

@@ -1,7 +1,7 @@
 #include "Server.h"
 
 extern char content[5120];
-extern char query[5120];
+extern char query[10240];
 
 void Server::adminMsg(const char *content, char *target)
 {
@@ -15,28 +15,28 @@ Server::Server()
     epoll_fd = 0;
 }
 
-void Server::Mysql_query(MYSQL *mysql, const char *q)
-{
-    struct tm *p = getTime();
-    if (mysql_query(mysql, q) != 0)
-    {
-        mysql_log
-            << "["
-            << p->tm_year + 1900
-            << "-"
-            << p->tm_mon + 1
-            << "-"
-            << p->tm_mday
-            << " "
-            << p->tm_hour
-            << ":"
-            << p->tm_min
-            << ":"
-            << p->tm_sec
-            << "] > "
-            << mysql_error(mysql) << endl;
-    }
-}
+// void Server::Mysql_query(MYSQL *mysql, const char *q)
+// {
+//     struct tm *p = getTime();
+//     if (mysql_query(mysql, q) != 0)
+//     {
+//         mysql_log
+//             << "["
+//             << p->tm_year + 1900
+//             << "-"
+//             << p->tm_mon + 1
+//             << "-"
+//             << p->tm_mday
+//             << " "
+//             << p->tm_hour
+//             << ":"
+//             << p->tm_min
+//             << ":"
+//             << p->tm_sec
+//             << "] > "
+//             << mysql_error(mysql) << endl;
+//     }
+// }
 
 void Server::Prepare()
 {
@@ -102,7 +102,7 @@ void Server::Prepare()
     mysql_log.open("mysql_log", ios::app);
     user_wait();
 }
-void Server::BroadcastMsg(int call)
+void Server::BroadcastMsg(int call, Msg msg)
 {
     cout << "A user sends a broadcast message." << endl;
     map<int, pair<string, int>>::iterator i; //声明一个迭代器（相当于int i
@@ -111,7 +111,7 @@ void Server::BroadcastMsg(int call)
         if (i->first != call) //除了发信者外
         {
             cout << "Send message to client " << i->first << endl;
-            sendMsg(send_msg, i->first); //给所有在线玩家发送消息
+            sendMsg(msg, i->first); //给所有在线玩家发送消息
         }
     }
 }
@@ -121,7 +121,7 @@ void Server::dealWithMsg(int call)
     {
     case 0:
     {
-        cout << "illegal message:type=0" << recv_msg.content << endl;
+        cout << "Maybe someone has been offline:" << recv_msg.content << endl;
         break;
     }
     case LOGIN:
@@ -156,6 +156,11 @@ void Server::dealWithMsg(int call)
         setFriendFlag();
         break;
     }
+    case QUERYFRIENDLIST:
+    {
+        sendFriendList(call);
+        break;
+    }
     case CREATEGROUP:
     {
         createGroupTalk();
@@ -187,7 +192,7 @@ void Server::dealWithMsg(int call)
     {
         cout << "From:" << recv_msg.fromUser << endl;
         cout << "Say:" << recv_msg.content << endl;
-        BroadcastMsg(call);
+        BroadcastMsg(call, recv_msg);
         break;
     }
     case PRIVTALK: //下面两个可能写不完 先写
@@ -220,9 +225,10 @@ void *Server::dealWithHeartbeat(void *pointer)
         {
             if (i->second.second == 5) //若存在心跳包参数为5的
             {
-                cout << i->second.first << "has been offline." << endl; //丢人 直接踢下线
+                cout << i->second.first << " has been offline." << endl; //丢人 直接踢下线
                 close(i->first);
                 ptr->onlinelist.erase(i);
+                deleteepollfd(ptr->epoll_fd, i->first);
             }
             else if (i->second.second < 5) //若心跳包参数小于5
             {
@@ -269,7 +275,7 @@ void Server::Start() //服务端程序入口
             }
             else //如果服务器来自epoll监控队列中的其他描述符（已被accept分配过新的标识符）
             {
-                if (recvMsg(call, recv_msg) < 0)
+                if (recvMsg(call, recv_msg, false) < 0)
                 {
                     cout << "Receive error." << endl;
                 }

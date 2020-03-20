@@ -2,7 +2,7 @@
 #include "Server.h"
 
 extern char content[5120];
-extern char query[5120];
+extern char query[10240];
 
 /*客户端部分*/
 void Client::queryFriendList() //请求好友列表
@@ -15,12 +15,13 @@ void Client::queryFriendList() //请求好友列表
     else
     {
         cout << "正在请求好友列表..." << endl;
+        bool isEnd = false;
         fstream fl;
         fl.open("friendlist", ios::out);
         fl << "account flag" << endl;
-        while (1)
+        while (!isEnd)
         {
-            recvMsg(sock_fd, msg);
+            recvMsg(sock_fd, msg, false);
             if (msg.type == LIST)
             {
                 if (strcmp(msg.content, "") != 0)
@@ -59,10 +60,11 @@ void Client::queryFriendList() //请求好友列表
                 }
                 else
                 {
-                    break;
+                    isEnd = true;
                 }
             }
         }
+        cout << "请求完毕！" << endl;
         fl.close();
     }
 }
@@ -79,7 +81,7 @@ bool Server::targetExisted(bool isFriend)
     {
         sprintf(query, "select account from group_%s where account='%s'", recv_msg.content, recv_msg.fromUser);
     }
-    mysql_query(&mysql, query);
+    Mysql_query(&mysql, query);
     MYSQL_RES res;
     MYSQL_ROW row;
     res = *mysql_store_result(&mysql);
@@ -96,7 +98,7 @@ bool Server::targetExisted(bool isFriend)
 void Server::makeFriendQuery() //添加好友
 {
     sprintf(query, "select account from userinfo where account='%s';", recv_msg.content);
-    mysql_query(&mysql, query);
+    Mysql_query(&mysql, query);
     MYSQL_RES res;
     MYSQL_ROW row;
     res = *mysql_store_result(&mysql);
@@ -106,9 +108,9 @@ void Server::makeFriendQuery() //添加好友
         if (targetExisted(true) == false)
         {
             sprintf(content, "用户 %s 请求添加你为好友！", recv_msg.fromUser);
-            sprintf(query, "insert into %s_querybox values (null, '%s', '%s', '%s', '%s');", recv_msg.toUser, "FRIEND", recv_msg.fromUser, recv_msg.toUser, content);
-            mysql_query(&mysql, query);
-            adminMsg(content, recv_msg.toUser);
+            sprintf(query, "insert into %s_querybox values (null, '%s', '%s', '%s', '%s');", recv_msg.content, "FRIEND", recv_msg.fromUser, recv_msg.content, content);
+            Mysql_query(&mysql, query);
+            adminMsg(content, recv_msg.content);
         }
         else
         {
@@ -124,7 +126,7 @@ void Server::makeFriendQuery() //添加好友
 void Server::dealwithQuery()
 {
     sprintf(query, "select type, fromuser, target from %s_querybox where id = %s;", recv_msg.fromUser, recv_msg.content);
-    mysql_query(&mysql, query);
+    Mysql_query(&mysql, query);
     MYSQL_RES res;
     MYSQL_ROW row;
     res = *mysql_store_result(&mysql);
@@ -141,19 +143,19 @@ void Server::dealwithQuery()
             {
                 addFriend(target, fromUser);
                 sprintf(query, "delete from %s_querybox where id = %s", recv_msg.fromUser, recv_msg.content);
-                mysql_query(&mysql, query);
+                Mysql_query(&mysql, query);
             }
             else if (strEqual(type, "GROUP"))
             {
                 addGroupMember(target, fromUser);
                 sprintf(query, "delete from %s_querybox where id = %s", recv_msg.fromUser, recv_msg.content);
-                mysql_query(&mysql, query);
+                Mysql_query(&mysql, query);
             }
         }
         else if (recv_msg.type == REFUSE)
         {
             sprintf(query, "delete from %s_querybox where id = %s", recv_msg.fromUser, recv_msg.content);
-            mysql_query(&mysql, query);
+            Mysql_query(&mysql, query);
         }
     }
     else
@@ -165,9 +167,9 @@ void Server::dealwithQuery()
 void Server::addFriend(char *account, char *whichfriend)
 {
     sprintf(query, "insert into %s_friendlist values ('%s', '0');", account, whichfriend);
-    mysql_query(&mysql, query);
+    Mysql_query(&mysql, query);
     sprintf(query, "insert into %s_friendlist values ('%s', '0');", whichfriend, account);
-    mysql_query(&mysql, query);
+    Mysql_query(&mysql, query);
     sprintf(content, "你已经和 %s 是好友啦！请手动刷新好友列表（/queryfriendlist），和他打招呼吧！", whichfriend);
     adminMsg(content, account);
     sprintf(content, "你已经和 %s 是好友啦！请手动刷新好友列表（/queryfriendlist），和他打招呼吧！", account);
@@ -177,39 +179,39 @@ void Server::addFriend(char *account, char *whichfriend)
 void Server::deleteFriend() //删除好友
 {
     sprintf(query, "delete from %s_friendlist where account = '%s';", recv_msg.fromUser, recv_msg.content);
-    mysql_query(&mysql, query);
+    Mysql_query(&mysql, query);
     sprintf(query, "delete from %s_friendlist where account = '%s';", recv_msg.content, recv_msg.fromUser);
-    mysql_query(&mysql, query);
+    Mysql_query(&mysql, query);
 }
 void Server::setFriendFlag() //设为特别关心
 {
     if (recv_msg.type == SUKI)
     {
-        sprintf(query, "update %s_friendlist set flag = '2' where account = %s", recv_msg.fromUser, recv_msg.toUser);
+        sprintf(query, "update %s_friendlist set flag = '2' where account = '%s'", recv_msg.fromUser, recv_msg.content);
     }
     else if (recv_msg.type == KIRAI)
     {
-        sprintf(query, "update %s_friendlist set flag = '3' where account = %s", recv_msg.fromUser, recv_msg.toUser);
+        sprintf(query, "update %s_friendlist set flag = '3' where account = '%s'", recv_msg.fromUser, recv_msg.content);
     }
-    mysql_query(&mysql, query);
+    Mysql_query(&mysql, query);
 }
 void Server::createFriendList() //注册完成时创建该用户的好友列表
 {
     sprintf(query, "create table %s_friendlist like friendlist;", acc.account);
-    mysql_query(&mysql, query);
+    Mysql_query(&mysql, query);
     cout << "New friend list is been created." << endl;
 }
 void Server::createQuerybox() //注册完成时创建该用户的好友列表
 {
     sprintf(query, "create table %s_querybox like querybox;", acc.account);
-    mysql_query(&mysql, query);
+    Mysql_query(&mysql, query);
     cout << "New querybox is been created." << endl;
 }
 
 void Server::sendFriendList(int call) //发送好友列表（登录后马上调用，以获取该用户的好友列表）
 {
     sprintf(query, "select account, flag from %s_friendlist", recv_msg.fromUser);
-    mysql_query(&mysql, query);
+    Mysql_query(&mysql, query);
     MYSQL_RES *res;
     MYSQL_ROW row;
     res = mysql_store_result(&mysql);

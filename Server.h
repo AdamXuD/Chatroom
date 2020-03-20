@@ -6,12 +6,12 @@ class Server
 public:
     Server();
     void Prepare();
-    void Mysql_query(MYSQL *mysql, const char *q);
+    //void Mysql_query(MYSQL *mysql, const char *q);
 
     void adminMsg(const char *content, char *target); //错误反馈
 
     void addonlinelist(int clnt_fd, char *acc = nullptr);//储存在线用户
-    void BroadcastMsg(int call);               //群发
+    void BroadcastMsg(int call, Msg msg);                //群发
     void Onlineremind(int call);               //上线提醒
     void Login(int call);                      //登录处理函数
     void Signup(int call);                     //注册处理函数
@@ -33,7 +33,7 @@ public:
     /*好友列表部分*/
 
     /*群聊及其权限部分*/
-    void sendAdminMsg(Msg message, bool sw_query, char *fromUser = nullptr, char *Group = nullptr);
+    void sendAdminMsg(Msg message, bool sw_query, char *Group = nullptr, char *fromUser = nullptr);
     void SendGroupMember(int call);
 
     void createGroupTalk(); //创建群聊
