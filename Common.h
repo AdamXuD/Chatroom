@@ -17,6 +17,7 @@
 #include <map>
 #include <pthread.h>
 //#include<ncurses.h>  //用户界面库
+
 #define LOGINMODE 1 //默认关闭登录模式
 #define ADMIN "Admin"
 #define BUFSIZE 4096
@@ -70,7 +71,7 @@ struct Account //账户类
     
 };
 
-void clear();                       //清屏函数
+void myclear();                       //清屏函数
 void user_wait();                   //用户等待
 void input(char *ptr, const char *tips = nullptr); //输入框
 void input(int &num, const char *tips = nullptr); //输入框
@@ -83,8 +84,10 @@ int sendMsg(Msg &msg, int fd);                   //发送消息用接口
 int recvMsg(int fd, Msg &msg, bool wait);        //接收消息用接口
 
 int sendHeartBeats(int fd, Msg &msg);  //心跳包发送
+
 void addepollfd(int epoll_fd, int fd); //增加监听描述符
 void deleteepollfd(int epoll_fd, int fd);
 
 struct tm *getTime();
 int Mysql_query(MYSQL *mysql, const char *q);
+

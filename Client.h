@@ -24,7 +24,6 @@ public:
     void setGroupAdmin(string command, string toGroup);
     void leaveGroup(string toGroup);
     void deleteGroupMember(string command, string toGroup);
-
     void queryGroupMember(char *Group);
     /*群聊与相关权限部分*/
 

@@ -71,7 +71,7 @@ int recvMsg(int fd, Msg &msg, bool wait) //接收消息用接口
         memset(buf, 0, sizeof(buf));
         ret = read(fd, buf, 65535);
         memcpy(&msg, buf, sizeof(msg));
-        if(!wait)
+        if (!wait)
         {
             break;
         }
@@ -158,7 +158,8 @@ int Mysql_query(MYSQL *mysql, const char *q)
     int ret;
     if (ret = mysql_query(mysql, q) != 0)
     {
-        cout << "Error at Line: " << query << ". Error: "<< mysql_error(mysql) << endl;
+        cout << "Error at Line: " << query << ".";
+        cout << "Error:"<< mysql_error(mysql) << endl;
     }
     return ret;
 }

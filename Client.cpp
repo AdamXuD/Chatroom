@@ -176,7 +176,7 @@ void Client::Start() //客户端入口
 {
     static struct epoll_event events[2];
     char buf[65535];
-    queryFriendList();
+    //queryFriendList();
     Connect();
     if (LOGINMODE)
     {
