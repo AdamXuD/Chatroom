@@ -7,10 +7,7 @@ int main()
     cout << "请选择运行模式：" << endl;
     cout << "1.客户端" << endl;
     cout << "2.服务端" << endl;
-    cin.clear();
-    cin.sync();
-    cin >> choice;
-    getchar();
+    input(choice);
     if (choice == 1 || choice == 2)
     {
         switch (choice)
