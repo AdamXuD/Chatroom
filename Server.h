@@ -8,7 +8,7 @@ public:
     void Prepare();
 
     void addonlinelist(int clnt_fd, char *acc);//储存在线用户
-    void BroadcastMsg(int call);               //群发
+    void BroadcastMsg(int call, Msg &msg);     //群发
     void Onlineremind(int call);               //上线提醒
     void Login(int call);                      //登录处理函数
     void Signup(int call);                     //注册处理函数
@@ -30,11 +30,11 @@ public:
     void joinGroup();       //处理加入群聊请求
     void leaveGroup();      //处理离开群聊请求
     void deleteGroupMember(); //处理踢出群聊请求
-    void Grouptalk();         //处理用户群聊请求
+    void Grouptalk(Msg &msg, int call); //处理用户群聊请求
     /*群聊及其权限部分*/
 
     /*私聊部分*/
-    void Privatetalk(); //处理用户私聊请求
+    void Privatetalk(Msg &msg); //处理用户私聊请求
     /*私聊部分*/
     /*===========================================待完成部分===========================================*/
 
@@ -46,7 +46,8 @@ private:
     int sock_fd;                 //socket产生的句柄
     int epoll_fd;                //epoll_create()返回的句柄
     map<int, pair<string, int>> onlinelist; //用map记录当前socket和<在线用户名，还有心跳包参数>（一一对应）
-    Msg msg;                     //消息
+    Msg recv_msg;                     //收到的消息
+    Msg send_msg;                       //准备发送的消息
     Account acc;                 //账号信息
     MYSQL mysql;                 //mysql句柄
 protected:

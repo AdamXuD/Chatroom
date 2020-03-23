@@ -19,6 +19,8 @@
 //#include<ncurses.h>  //用户界面库
 #define LOGINMODE 1 //默认关闭登录模式
 
+#define ADMIN "Admin"
+
 #define COMMAND 1
 
 #define FAILED 100
@@ -76,6 +78,10 @@ bool strEqual(const char *str1, const char *str2); //判断字符串1是否包�
 void setMsg(Msg &msg, int type, const char *fromUser, const char *toUser, const char *content);
 
 int sendMsg(Msg &msg, int fd);      //发送消息用接口
-int recvMsg(int fd, Msg &msg);      //接收消息用接口
+int recvMsg(int fd, Msg &msg, bool wait = false);      //接收消息用接口
 int sendHeartBeats(int fd, Msg &msg);//心跳包发送
 void addepollfd(int epoll_fd, int fd); //增加监听描述符
+
+int input();
+
+int Mysql_query(MYSQL *mysql, const char *q);

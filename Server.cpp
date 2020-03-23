@@ -76,7 +76,7 @@ void Server::Prepare()
     /*数据库初始化部分结束*/
     user_wait();
 }
-void Server::BroadcastMsg(int call)
+void Server::BroadcastMsg(int call, Msg &msg)
 {
     cout << "A user sends a broadcast message." << endl;
     map<int, pair<string, int>>::iterator i; //声明一个迭代器（相当于int i
@@ -91,56 +91,94 @@ void Server::BroadcastMsg(int call)
 }
 void Server::dealWithMsg(int call)
 {
-    switch (msg.type)
+    switch (recv_msg.type)
     {
     case 0:
     {
-        cout << "illegal message:" << msg.content << endl;
+        cout << "Maybe someone has been offline:" << recv_msg.content << endl;
         break;
+    }
+    case LOGIN:
+    {
+        Login(call);
+        break;
+    }
+    case SIGNUP:
+    {
+        Signup(call);
+        break;
+    }
+    case MAKEFRIEND:
+    {
+    }
+    case ACCEPT:
+    case REFUSE:
+    {
+    }
+    case DELETEFRIEND:
+    {
+    }
+    case SUKI:
+    case KIRAI:
+    {
+    }
+    case QUERYFRIENDLIST:
+    {
+    }
+    case CREATEGROUP:
+    {
+    }
+    case JOINGROUP:
+    {
+    }
+    case SETADMIN:
+    {
+
+    }
+    case LEAVEGROUP:
+    {
+
+    }
+    case KICKOFFMEMBER:
+    {
+        
+    }
+    case QUERYMEMBER:
+    {
+
     }
     case COMMAND: //如果收到命令类消息
     {
-        if (strstr(msg.content, "SIGNIN") != NULL) //接收并处理客户端的登录请求
-        {
-            Login(call);
-        }
-        else if (strstr(msg.content, "SIGNUP") != NULL) //接收并处理客户端的注册请求
-        {
-            Signup(call);
-        }
-        else //还可以再添加其他的else 我想通过这种方式来实现组群加好友之类的操作 但是我觉得这样子效率有点低 你们看看有没有更好的方法
-        {
-            cout << "illegal message:" << msg.content << endl;
-        }
+        cout << "illegal message:" << recv_msg.content << endl;
         break;
     }
     case ALL:
     {
-        cout << "From:" << msg.fromUser << endl;
-        cout << "Say:" << msg.content << endl;
-        BroadcastMsg(call);
+        cout << "From:" << recv_msg.fromUser << endl;
+        cout << "Say:" << recv_msg.content << endl;
+        BroadcastMsg(call, recv_msg);
         break;
     }
     case PRIVTALK: //下面两个可能写不完 先写
     {
         cout << "A user sends a message to another user." << endl;
-        Privatetalk();
+        Privatetalk(recv_msg);
         break;
     }
     case GROUPTALK:
     {
         cout << "A user sends a message to a group" << endl;
-        Grouptalk();
+        Grouptalk(recv_msg, call);
         break;
     }
     case HEARTBEAT:
     {
-        onlinelist[call].second = 0;  //每收到一次心跳包心跳包参数置零
+        onlinelist[call].second = 0; //每收到一次心跳包心跳包参数置零
         break;
     }
     }
 }
-void* Server::dealWithHeartbeat(void *pointer)
+void *Server::dealWithHeartbeat(void *pointer)
 {
     cout << "Heartbeat thread has been ready." << endl;
     Server *ptr = (Server *)pointer;
@@ -200,7 +238,7 @@ void Server::Start() //服务端程序入口
             }
             else //如果服务器来自epoll监控队列中的其他描述符（已被accept分配过新的标识符）
             {
-                if (recvMsg(call, msg) < 0)
+                if (recvMsg(call, recv_msg) < 0)
                 {
                     cout << "Receive error." << endl;
                 }

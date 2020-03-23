@@ -47,12 +47,12 @@ void Server::leaveGroup() //处理离开群聊请求
 void Server::deleteGroupMember() //处理踢出群聊请求
 {
 }
-void Server::Grouptalk() //处理用户群聊请求
+void Server::Grouptalk(Msg &msg, int call) //处理用户群聊请求
 {
 }
 /*群聊及其权限部分*/
 /*私聊部分*/
-void Server::Privatetalk() //处理用户私聊请求
+void Server::Privatetalk(Msg &msg) //处理用户私聊请求
 {
 }
 /*私聊部分*/
