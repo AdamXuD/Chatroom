@@ -65,6 +65,48 @@ int recvMsg(int fd, Msg &msg) //接收消息用接口
     return ret;
 }
 
+void setMsg(Msg &msg, int type, const char *fromUser, const char *toUser, const char *content)
+{
+    memset(&msg, 0, sizeof(msg));
+    msg.type = type;
+    if (fromUser != nullptr)
+    {
+        strcpy(msg.fromUser, fromUser);
+    }
+    if (toUser != nullptr)
+    {
+        strcpy(msg.toUser, toUser);
+    }
+    if (content != nullptr)
+    {
+        strcpy(msg.content, content);
+    }
+}
+
+bool strEqual(string str1, const char *str2) //判断字符串是否相等（或1是否包含2）
+{
+    if (str1.find(str2) != string::npos)
+    {
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+}
+
+bool strEqual(const char *str1, const char *str2) //判断字符串1是否包含2
+{
+    if (strstr(str1, str2) != NULL)
+    {
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+}
+
 int sendHeartBeats(int fd, Msg &msg)
 {
     memset(&msg, 0, sizeof(msg));
