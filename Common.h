@@ -53,6 +53,7 @@
 #define LOGIN 7
 #define SIGNUP 8
 
+
 using namespace std;
 
 
@@ -71,7 +72,7 @@ struct Account //账户类
     
 };
 
-void myclear();                       //清屏函数
+void clear();                       //清屏函数
 void user_wait();                   //用户等待
 void input(char *ptr, const char *tips = nullptr); //输入框
 void input(int &num, const char *tips = nullptr); //输入框

@@ -158,7 +158,7 @@ int Mysql_query(MYSQL *mysql, const char *q)
     int ret;
     if (ret = mysql_query(mysql, q) != 0)
     {
-        cout << "Error at Line: " << query << ".";
+        cout << "Error at Line: " << q << ".";
         cout << "Error:"<< mysql_error(mysql) << endl;
     }
     return ret;
