@@ -15,6 +15,7 @@ public:
     void Signup(int call);                     //注册处理函数
     static void *dealWithHeartbeat(void *ptr); //处理心跳包
     void dealwithQuery();
+    void sendQueryBox(int call); 
     void addFriend(char *account, char *whichfriend);
     int groupPermission(char *Group, char *Member);
     /*好友列表部分*/

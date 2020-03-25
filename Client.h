@@ -15,8 +15,14 @@ public:
     void dealwithmsg(char *Target);
     void Start();
     void dealWithQuery(string command);
+
+    void mainMenu();
+    string friendlistMenu(bool isFriend);
+    void groupMenu(string toGroup);
+    int getQueryBox(bool show);
+
     /*好友列表部分*/
-    void queryFriendList(); //请求好友列表
+    void queryFriendList(bool show); //请求好友列表
     /*好友列表部分*/
 
     /*群聊相关权限部分*/
@@ -24,7 +30,7 @@ public:
     void setGroupAdmin(string command, string toGroup);
     void leaveGroup(string toGroup);
     void deleteGroupMember(string command, string toGroup);
-    void queryGroupMember(char *Group);
+    void queryGroupMember(const char *Group, bool show);
     /*群聊与相关权限部分*/
 
     /*私聊部分*/
@@ -40,6 +46,9 @@ private:
     int epoll_fd;                //epoll二叉树根的句柄，真的玄妙
     bool isLogin;                //登陆状态
     map<string, int> friendlist;  //用list类存储好友列表
+    map<string, int> memberlist;
+    list<Msg> Querybox;
+
     struct Account acc; //账号信息
 protected:
 };

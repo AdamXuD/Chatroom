@@ -115,6 +115,28 @@ void Server::BroadcastMsg(int call, Msg msg)
         }
     }
 }
+
+void Server::sendQueryBox(int call)
+{
+    sprintf(query, "select id, content from `%s_querybox`", recv_msg.fromUser);
+    Mysql_query(&mysql, query);
+    MYSQL_RES *res;
+    MYSQL_ROW row;
+    res = mysql_store_result(&mysql);
+    while (row = mysql_fetch_row(res))
+    {
+        usleep(30000);
+        if (row != NULL)
+        {
+            setMsg(send_msg, QUERYBOX, row[0], nullptr, row[1]);
+            sendMsg(send_msg, call, true);
+        }
+    }
+    usleep(30000);
+    setMsg(send_msg, EOF, nullptr, nullptr, nullptr);
+    sendMsg(send_msg, call, true);
+}
+
 void Server::dealWithMsg(int call)
 {
     switch (recv_msg.type)
@@ -181,8 +203,13 @@ void Server::dealWithMsg(int call)
         deleteGroupMember();
         break;
     case QUERYMEMBER:
-        sendFriendList(call);
+        SendGroupMember(call);
         break;
+    case QUERYBOX:
+    {
+        sendQueryBox(call);
+        break;
+    }
     case COMMAND: //如果收到命令类消息
     {
         cout << "illegal message:" << recv_msg.content << endl;

@@ -5,8 +5,13 @@ extern char content[5120];
 extern char query[10240];
 
 /*客户端部分*/
-void Client::queryFriendList() //请求好友列表
+void Client::queryFriendList(bool show) //请求好友列表
 {
+    if (show)
+    {
+        cout << "正在请求好友列表..." << endl;
+    }
+    sleep(1);
     setMsg(msg, QUERYFRIENDLIST, acc.account, nullptr, nullptr);
     if (sendMsg(msg, sock_fd) < 0)
     {
@@ -14,20 +19,18 @@ void Client::queryFriendList() //请求好友列表
     }
     else
     {
-        cout << "正在请求好友列表..." << endl;
-        bool isEnd = false;
         fstream fl;
         fl.open("friendlist", ios::out);
         fl << "account flag" << endl;
-        while (!isEnd)
+        while (1)
         {
-            recvMsg(sock_fd, msg, false);
+            recvMsg(sock_fd, msg, true);
             if (msg.type == LIST)
             {
-                if (strcmp(msg.content, "") != 0)
+                fl << msg.fromUser << " " << msg.content << endl;
+                friendlist[msg.fromUser] = atoi(msg.content);
+                if (show)
                 {
-                    fl << msg.fromUser << " " << msg.content << endl;
-                    friendlist[msg.fromUser] = atoi(msg.content);
                     cout << msg.fromUser << " ";
                     switch (atoi(msg.content))
                     {
@@ -58,13 +61,16 @@ void Client::queryFriendList() //请求好友列表
                     }
                     }
                 }
-                else
-                {
-                    isEnd = true;
-                }
+            }
+            else if (msg.type == EOF)
+            {
+                break;
             }
         }
-        cout << "请求完毕！" << endl;
+        if (show)
+        {
+            cout << "请求完毕！" << endl;
+        }
         fl.close();
     }
 }
@@ -217,17 +223,15 @@ void Server::sendFriendList(int call) //发送好友列表（登录后马上调�
     res = mysql_store_result(&mysql);
     while (row = mysql_fetch_row(res))
     {
+        usleep(30000);
         if (row != NULL)
         {
             setMsg(send_msg, LIST, row[0], nullptr, row[1]);
-            sendMsg(send_msg, call);
-        }
-        else
-        {
-            setMsg(send_msg, LIST, nullptr, nullptr, nullptr);
-            sendMsg(send_msg, call);
-            break;
+            sendMsg(send_msg, call, true);
         }
     }
+    usleep(30000);
+    setMsg(send_msg, EOF, nullptr, nullptr, nullptr);
+    sendMsg(send_msg, call, true);
 }
 /*服务端部分*/

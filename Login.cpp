@@ -19,8 +19,8 @@ void Client::Login() //表登录接口
             clear();
             char password[32];
             input(this->acc.account, "请输入用户名：");
-            strcpy(password, getpass("请输入密码："));
-            strcpy(this->acc.pwd, crypt(password, password));
+            strcpy(password, Getpass("请输入密码："));
+            strcpy(this->acc.pwd, crypt(password, "pa"));
             Login(this->acc);
             break;
         case 2:
@@ -82,11 +82,11 @@ void Client::Signup()
     input(acc.account, "请输入昵称：");
     while (1)
     {
-        strcpy(password1, getpass("请输入密码："));
-        strcpy(password2, getpass("请再次输入密码："));
+        strcpy(password1, Getpass("请输入密码："));
+        strcpy(password2, Getpass("请再次输入密码："));
         if (strcmp(password1, password2) == 0)
         {
-            strcpy(acc.pwd, crypt(password1, password1));
+            strcpy(acc.pwd, crypt(password1, "pa"));
             break;
         }
         else

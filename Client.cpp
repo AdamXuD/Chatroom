@@ -123,60 +123,167 @@ void Client::dealwithmsg(char *Target)
         cout << msg.fromUser << " 说：" << msg.content << endl;
     }
 }
-void Client::dealWithQuery(string command)
+
+void Client::mainMenu()
 {
-    if (strEqual(command, "makefriend "))
+    setMsg(msg, WAIT, nullptr, nullptr, nullptr);
+    string command;
+    string main_menu[] = {"发起私聊", // 1
+                          "发起群聊",
+                          "添加好友",
+                          "删除好友",
+                          "处理请求", // 5
+                          "设置特别关心",
+                          "设置黑名单",
+                          "拉取好友列表",
+                          "创建群组",
+                          "加入群组", //10
+                          "返回"};    //11
+    switch (menu(main_menu, 10))
     {
-        setMsg(msg, MAKEFRIEND, acc.account, nullptr, command.substr(sizeof("makefriend ") - 1).c_str());
-    }
-    else if(strEqual(command, "deletefriend "))
+    case 1:
     {
-        setMsg(msg, DELETEFRIEND, acc.account, nullptr, command.substr(sizeof("deletefriend ") - 1).c_str());
+        command = friendlistMenu(true);
+        Privatetalk(command);
+        break;
     }
-    else if (strEqual(command, "accept "))
+    case 2:
     {
-        setMsg(msg, ACCEPT, acc.account, nullptr, command.substr(sizeof("accept ") - 1).c_str());
+        command = friendlistMenu(false);
+        Grouptalk(command);
+        break;
     }
-    else if (strEqual(command, "refuse "))
+    case 3:
     {
-        setMsg(msg, REFUSE, acc.account, nullptr, command.substr(sizeof("refuse ") - 1).c_str());
+        input(command, "请输入好友昵称>");
+        setMsg(msg, MAKEFRIEND, acc.account, nullptr, command.c_str());
+        sendMsg(msg, sock_fd);
+        break;
     }
-    else if (strEqual(command, "suki "))
+    case 4:
     {
-        setMsg(msg, SUKI, acc.account, nullptr, command.substr(sizeof("suki ") - 1).c_str());
+        command = friendlistMenu(true);
+        setMsg(msg, DELETEFRIEND, acc.account, nullptr, command.c_str());
+        sendMsg(msg, sock_fd);
+        break;
     }
-    else if (strEqual(command, "kirai "))
+    case 5:
     {
-        setMsg(msg, KIRAI, acc.account, nullptr, command.substr(sizeof("kirai ") - 1).c_str());
+        getQueryBox(false);
+
+        sendMsg(msg, sock_fd);
+        break;
     }
-    else if (strEqual(command, "queryfriendlist"))
+    case 6:
     {
-        queryFriendList();
-        return;
+        command = friendlistMenu(true);
+        setMsg(msg, SUKI, acc.account, nullptr, command.c_str());
+        sendMsg(msg, sock_fd);
+        break;
     }
-    else if (strEqual(command, "joingroup "))
+    case 7:
     {
-        setMsg(msg, JOINGROUP, acc.account, nullptr, command.substr(sizeof("joingroup ") - 1).c_str());
+        command = friendlistMenu(true);
+        setMsg(msg, KIRAI, acc.account, nullptr, command.c_str());
+        sendMsg(msg, sock_fd);
+        break;
     }
-    else if (strEqual(command, "creategroup "))
+    case 8:
     {
-        setMsg(msg, CREATEGROUP, acc.account, nullptr, command.substr(sizeof("creategroup ") - 1).c_str());
+        queryFriendList(true);
+        break;
     }
-    else
+    case 9:
     {
-        cout << "指令有误，请检查指令格式！" << endl;
-        return;
+        input(command, "请输入群名称>");
+        setMsg(msg, CREATEGROUP, acc.account, nullptr, command.c_str());
+        sendMsg(msg, sock_fd);
+        break;
     }
+    case 10:
+    {
+        input(command, "请输入群名称>");
+        setMsg(msg, JOINGROUP, acc.account, nullptr, command.c_str());
+        sendMsg(msg, sock_fd);
+        break;
+    }
+    default:
+    {
+        break;
+    }
+    }
+}
+
+string Client::friendlistMenu(bool isFriend) //1为提取群组 0为提取好友
+{
+    string tmp[friendlist.size()];
+    map<string, int>::iterator it;
+    int i = 0;
+    for (it = friendlist.begin(); it != friendlist.end(); it++)
+    {
+        if (isFriend)
+        {
+            if (it->second == 0)
+            {
+                tmp[i] = it->first;
+                i++;
+            }
+        }
+        else
+        {
+            if (it->second == 1)
+            {
+                tmp[i] = it->first;
+                i++;
+            }
+        }
+    }
+    return tmp[menu(tmp, i) - 1];
+}
+
+int Client::getQueryBox(bool show)
+{
+    if (show)
+    {
+        cout << "正在请求待处理请求列表..." << endl;
+    }
+    sleep(1);
+    setMsg(msg, QUERYBOX, acc.account, nullptr, nullptr);
     if (sendMsg(msg, sock_fd) < 0)
     {
         cout << "请求失败，请检查网络连接！" << endl;
     }
+    else
+    {
+        while (1)
+        {
+            recvMsg(sock_fd, msg, true);
+            if (msg.type == QUERYBOX)
+            {
+                Querybox.push_back(msg);
+                if (show)
+                {
+                    cout << "id：" << msg.fromUser << endl;
+                    cout << "内容：" << msg.content << endl;
+                    cout << endl;
+                }
+            }
+            else if (msg.type == EOF)
+            {
+                break;
+            }
+        }
+        if (show)
+        {
+            cout << "请求完毕！" << endl;
+        }
+    }
 }
+
 void Client::Start() //客户端入口
 {
     static struct epoll_event events[2];
     char buf[65535];
-    //queryFriendList();
     Connect();
     if (LOGINMODE)
     {
@@ -200,32 +307,23 @@ void Client::Start() //客户端入口
         cout << "程序出错，程序即将退出！" << endl;
         exit(-1);
     }
-    else if (pid == 0) //子进程执行区（pid = 0）
+    else if (pid > 0) //子进程执行区（pid = 0）
     {
         close(pipe_fd[0]); //子进程负责写入，关闭读端
-        cout << "全服广播(请直接在下方输入消息，enter键发送)>" << endl;
+        cout << "正在获取信息..." << endl;
+        queryFriendList(false);
+        getQueryBox(true);
+        cout << "获取完毕！" << endl;
+        cout << "全服广播(请直接在下方输入消息，enter键发送，/menu唤出菜单)>" << endl;
         while (isLogin)
         {
             string tmp;
             getline(cin, tmp, '\n'); //按行读取指令 不跳空格的那种
             /*判断指令类型*/
-            if (*tmp.begin() == '/') //指令语意处理
+            if (strEqual(tmp, "/menu")) //指令语意处理
             {
-                tmp.erase(0, 1); //吃掉一个斜杠
-                string command = tmp;
-                if (strEqual(command, "private ")) //如果指令是私聊的话
-                {
-                    Privatetalk(command);
-                }
-                else if (strEqual(command, "grouptalk "))
-                {
-                    Grouptalk(command);
-                }
-                else
-                {
-                    dealWithQuery(command);
-                }
-                command.clear();
+                tmp.clear();
+                mainMenu();
             }
             else
             {
