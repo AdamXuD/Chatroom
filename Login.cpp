@@ -166,6 +166,16 @@ void Client::fileLogin()
 /*服务器部分*/
 void Server::addonlinelist(int clnt_fd, char *acc)
 {
+    map<int, pair<string, int>>::iterator it;
+    for (it = onlinelist.begin(); it != onlinelist.end(); it++)
+    {
+        if (strEqual(it->second.first, acc))
+        {
+            setMsg(send_msg, FORCE_EXIT, ADMIN, it->second.first.c_str(), "您的账号已在别处登录！");
+            sendMsg(send_msg, it->first);
+            onlinelist.erase(it->first);
+        }
+    }
     if (onlinelist.count(clnt_fd) == 0)
     {
         if (acc != nullptr)
@@ -179,7 +189,6 @@ void Server::addonlinelist(int clnt_fd, char *acc)
         onlinelist.erase(clnt_fd);
         if (acc != nullptr)
         {
-
             onlinelist[clnt_fd].first = acc;
         }
         onlinelist[clnt_fd].second = 0;

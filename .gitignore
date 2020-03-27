@@ -357,3 +357,4 @@ Chatroom
 *.a
 build/
 mysql_log
+friendlist

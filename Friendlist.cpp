@@ -13,18 +13,19 @@ void Client::queryFriendList(bool show) //请求好友列表
     }
     sleep(1);
     setMsg(msg, QUERYFRIENDLIST, acc.account, nullptr, nullptr);
-    if (sendMsg(msg, sock_fd) < 0)
+    if (sendMsg(msg, pipe_fd[1]) < 0)
     {
         cout << "请求失败，请检查网络连接！" << endl;
     }
     else
     {
+        friendlist.clear();
         fstream fl;
         fl.open("friendlist", ios::out);
         fl << "account flag" << endl;
         while (1)
         {
-            recvMsg(sock_fd, msg, true);
+            recvMsg(listpipe_fd[0], msg, true);
             if (msg.type == LIST)
             {
                 fl << msg.fromUser << " " << msg.content << endl;
@@ -74,6 +75,34 @@ void Client::queryFriendList(bool show) //请求好友列表
         fl.close();
     }
 }
+
+void Client::getOnlineFriends()
+{
+    cout << "正在请求在线列表..." << endl;
+    sleep(1);
+    setMsg(msg, ONLINELIST, acc.account, nullptr, nullptr);
+    if (sendMsg(msg, pipe_fd[1]) < 0)
+    {
+        cout << "请求失败，请检查网络连接！" << endl;
+    }
+    else
+    {
+        cout << "在线好友如下：" << endl;
+        while (1)
+        {
+            recvMsg(listpipe_fd[0], msg, true);
+            if (msg.type == LIST)
+            {
+                cout << msg.fromUser << endl;
+            }
+            else if (msg.type == EOF)
+            {
+                break;
+            }
+        }
+        cout << "请求完毕！" << endl;
+    }
+}
 /*客户端部分*/
 
 /*服务端部分*/
@@ -116,7 +145,7 @@ void Server::makeFriendQuery() //添加好友
             sprintf(content, "用户 %s 请求添加你为好友！", recv_msg.fromUser);
             sprintf(query, "insert into %s_querybox values (null, '%s', '%s', '%s', '%s');", recv_msg.content, "FRIEND", recv_msg.fromUser, recv_msg.content, content);
             Mysql_query(&mysql, query);
-            adminMsg(content, recv_msg.content);
+            adminMsg(content, recv_msg.content, true);
         }
         else
         {
@@ -231,7 +260,45 @@ void Server::sendFriendList(int call) //发送好友列表（登录后马上调�
         }
     }
     usleep(30000);
-    setMsg(send_msg, EOF, nullptr, nullptr, nullptr);
+    setMsg(send_msg, EOF, nullptr, nullptr, "EOF");
+    sendMsg(send_msg, call, true);
+}
+
+void Server::sendOnlineFriends(int call)
+{
+    string friendlist[1536];
+    int i = 0;
+    sprintf(query, "select account, flag from %s_friendlist", recv_msg.fromUser);
+    Mysql_query(&mysql, query);
+    MYSQL_RES *res;
+    MYSQL_ROW row;
+    res = mysql_store_result(&mysql);
+    while (row = mysql_fetch_row(res))
+    {
+        if (row != NULL)
+        {
+            if (strEqual(row[1], "0"))
+            {
+                friendlist[i] = row[0];
+                i++;
+            }
+        }
+    }
+    map<int, pair<string, int>>::iterator it;
+    for (it = onlinelist.begin(); it != onlinelist.end(); it++)
+    {
+        for (int j = 0; j < i; j++)
+        {
+            if (strEqual(it->second.first, friendlist[j].c_str()))
+            {
+                usleep(30000);
+                setMsg(send_msg, LIST, it->second.first.c_str(), nullptr, nullptr);
+                sendMsg(send_msg, call, true);
+            }
+        }
+    }
+    usleep(30000);
+    setMsg(send_msg, EOF, nullptr, nullptr, "EOF");
     sendMsg(send_msg, call, true);
 }
 /*服务端部分*/

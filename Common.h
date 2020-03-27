@@ -4,10 +4,10 @@
 #include <fstream>
 #include <sys/socket.h>
 #include <string>
-#include <stdio.h>
+#include <cstdio>
 #include <unistd.h>
-#include <string.h>
-#include <stdlib.h>
+#include <cstring>
+#include <cstdlib>
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <sys/epoll.h>
@@ -19,6 +19,7 @@
 //#include<ncurses.h>  //用户界面库
 #include <list>
 #include <termio.h>
+
 
 #define LOGINMODE 1 //默认关闭登录模式
 #define ADMIN "Admin"
@@ -33,6 +34,7 @@
 #define DELETEFRIEND 111
 #define SUKI 112
 #define KIRAI 113
+#define ONLINELIST 114
 
 #define ACCEPT 121
 #define REFUSE 120
@@ -47,6 +49,11 @@
 #define QUERYFRIENDLIST 141
 #define QUERYMEMBER 142
 #define QUERYBOX 143
+#define QUERY 144
+
+#define FORCE_EXIT 15
+
+#define HISTORY 16
 
 #define ALL 2
 #define PRIVTALK 3
@@ -76,8 +83,8 @@ struct Account //账户类
 {
     char account[32];
     char pwd[32];
-    
 };
+
 
 void clear();                       //清屏函数
 void user_wait();                   //用户等待
@@ -97,7 +104,7 @@ int sendHeartBeats(int fd, Msg &msg);  //心跳包发送
 void addepollfd(int epoll_fd, int fd); //增加监听描述符
 void deleteepollfd(int epoll_fd, int fd);
 
-struct tm *getTime();
+char *getTime();
 int Mysql_query(MYSQL *mysql, const char *q);
 
 int getch(); //Linux下没有conio.h故特别实现

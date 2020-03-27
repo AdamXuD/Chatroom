@@ -10,3 +10,4 @@ target_link_libraries(Chatroom mysqlclient)
 target_link_libraries(Chatroom crypt)
 
 target_link_libraries(Chatroom pthread)
+

@@ -14,18 +14,19 @@ void Client::queryGroupMember(const char *Group, bool show)
     }
     sleep(1);
     setMsg(msg, QUERYMEMBER, acc.account, Group, nullptr);
-    if (sendMsg(msg, sock_fd) < 0)
+    if (sendMsg(msg, pipe_fd[1]) < 0)
     {
         cout << "请求失败，请检查网络连接！" << endl;
     }
     else
     {
+        memberlist.clear();
         fstream ml;
         ml.open(Group, ios::out);
         ml << "account flag" << endl;
         while (1)
         {
-            recvMsg(sock_fd, msg, true);
+            recvMsg(listpipe_fd[0], msg, true);
             if (msg.type == LIST)
             {
                 ml << msg.fromUser << " " << msg.content << endl;
@@ -79,20 +80,20 @@ void Client::groupMenu(string toGroup)
                            "拉取群员列表",
                            "返回"};
     string command;
-    switch (menu(group_menu, 3))
+    switch (menu(group_menu, 5))
     {
     case 1:
     {
         input(command, "请输入群员昵称>");
         setMsg(msg, SETADMIN, acc.account, toGroup.c_str(), command.c_str());
-        sendMsg(msg, sock_fd);
+        sendMsg(msg, pipe_fd[1]);
         break;
     }
     case 2:
     {
         input(command, "请输入群员昵称>");
         setMsg(msg, KICKOFFMEMBER, acc.account, toGroup.c_str(), command.c_str());
-        sendMsg(msg, sock_fd);
+        sendMsg(msg, pipe_fd[1]);
         break;
     }
     case 3:
@@ -101,13 +102,14 @@ void Client::groupMenu(string toGroup)
         if (input() == 1)
         {
             setMsg(msg, SETADMIN, acc.account, toGroup.c_str(), command.c_str());
-            sendMsg(msg, sock_fd);
+            sendMsg(msg, pipe_fd[1]);
         }
         break;
     }
     case 4:
     {
-        queryGroupMember(toGroup.c_str(), true);
+        setMsg(msg, QUERYMEMBER, acc.account, toGroup.c_str(), "true");
+        sendMsg(msg, pipe_fd[1]);
         break;
     }
     default:
@@ -121,9 +123,9 @@ void Client::groupMenu(string toGroup)
 void Client::Grouptalk(string command) //处理用户群聊请求
 {
     string toGroup = command;
-    queryGroupMember(toGroup.c_str(), false);
-    cout << "你正在 " << toGroup << " 群内发言：" << endl;
+    cout << "你正在 " << toGroup << " 群内发言：（按ESC退出）" << endl;
     setMsg(msg, PIPE, nullptr, toGroup.c_str(), nullptr);
+    queryGroupMember(toGroup.c_str(), false);
     sendMsg(msg, pipe_fd[1]);
     while (1)
     {
@@ -176,6 +178,40 @@ void Client::Privatetalk(string command) //处理用户私聊请求
     }
 }
 /*私聊部分*/
+
+void Client::getHistory(string command)
+{
+    cout << "正在请求..." << endl;
+    sleep(1);
+    setMsg(msg, HISTORY, acc.account, command.c_str(), nullptr);
+    if (sendMsg(msg, pipe_fd[1]) < 0)
+    {
+        cout << "请求失败，请检查网络连接！" << endl;
+    }
+    else
+    {
+        fstream history;
+        sprintf(content, "%s_%s_record", command.c_str(), acc.account);
+        history.open(content, ios::out);
+        while (1)
+        {
+            recvMsg(listpipe_fd[0], msg, true);
+            if (msg.type == LIST)
+            {
+                history << "fromUser = " << msg.fromUser << endl;
+                history << "Target = " << msg.toUser << endl;
+                history << "content = " << msg.content << endl;
+                history << endl;
+            }
+            else if (msg.type == EOF)
+            {
+                break;
+            }
+        }
+        cout << "请求完毕！请到程序所在目录寻找对应的聊天记录！" << endl;
+        history.close();
+    }
+}
 /*客户端部分*/
 
 /*服务端部分*/
@@ -212,7 +248,7 @@ void Server::SendGroupMember(int call)
         }
     }
     usleep(30000);
-    setMsg(send_msg, EOF, nullptr, nullptr, nullptr);
+    setMsg(send_msg, EOF, nullptr, nullptr, "EOF");
     sendMsg(send_msg, call, true);
 }
 void Server::sendAdminMsg(Msg message, bool sw_query, char *Group, char *fromUser)
@@ -316,7 +352,7 @@ void Server::joinGroupQuery() //处理加入群聊请求
             if (targetExisted(false) == 0)
             {
                 sprintf(content, "用户 %s 请求加入 %s 群聊！", recv_msg.fromUser, recv_msg.content);
-                setMsg(send_msg, PRIVTALK, ADMIN, nullptr, content);
+                setMsg(send_msg, QUERY, ADMIN, nullptr, content);
                 sendAdminMsg(send_msg, true, recv_msg.content, recv_msg.fromUser);
             }
             else
@@ -365,6 +401,11 @@ void Server::deleteGroupMember() //处理踢出群聊请求
 }
 void Server::Grouptalk(Msg message, int call) //处理用户群聊请求
 {
+    if (strEqual(message.fromUser, ADMIN) == false)
+    {
+        sprintf(query, "insert into history values (null, '%s', '%s', '%s', '%s');", message.fromUser, message.toUser, message.content, getTime());
+        Mysql_query(&mysql, query);
+    }
     char query[1024], memberlist[1536][32] = {0};
     sprintf(query, "select account from `group_%s`;", message.toUser);
     if (Mysql_query(&mysql, query) == 0)
@@ -403,6 +444,11 @@ void Server::Grouptalk(Msg message, int call) //处理用户群聊请求
 /*私聊部分*/
 void Server::Privatetalk(Msg msg) //处理用户私聊请求
 {
+    if (strEqual(msg.fromUser, ADMIN) == false)
+    {
+        sprintf(query, "insert into history values (null, '%s', '%s', '%s', '%s');", msg.fromUser, msg.toUser, msg.content, getTime());
+        Mysql_query(&mysql, query);
+    }
     map<int, pair<string, int>>::iterator i;
     int count = 0;
     for (i = onlinelist.begin(); i != onlinelist.end(); i++)
@@ -425,11 +471,42 @@ void Server::Privatetalk(Msg msg) //处理用户私聊请求
             sprintf(content, "发向用户 %s 的 “%s” 发送失败！可能是用户名错误或者对方不在线！", msg.toUser, msg.content);
             adminMsg(content, msg.fromUser);
         }
-        else
-        {
-            cout << "Feedback error;" << endl;
-        }
     }
 }
 /*私聊部分*/
+
+void Server::sendHistory(int call)
+{
+    sprintf(query, "select flag from %s_friendlist where account = '%s';", recv_msg.fromUser, recv_msg.toUser);
+    Mysql_query(&mysql, query);
+    MYSQL_RES *res;
+    MYSQL_ROW row;
+    res = mysql_store_result(&mysql);
+    row = mysql_fetch_row(res);
+    if (row != NULL)
+    {
+        if(strEqual(row[0], "1"))
+        {
+            sprintf(query, "select fromUser, Target, content, time from History where Target = '%s';", recv_msg.toUser);
+        }
+        else
+        {
+            sprintf(query, "select fromUser, Target, content, time from History where (Target = '%s' and fromUser = '%s') or (Target = '%s' and fromUser = '%s');", recv_msg.fromUser, recv_msg.toUser, recv_msg.toUser, recv_msg.fromUser);
+        }
+        Mysql_query(&mysql, query);
+        MYSQL_RES *res;
+        MYSQL_ROW row;
+        res = mysql_store_result(&mysql);
+        while(row = mysql_fetch_row(res))
+        {
+            usleep(30000);
+            sprintf(content, "[%s]%s", row[3], row[2]);
+            setMsg(send_msg, LIST, row[0], row[1], content);
+            sendMsg(send_msg, call, true);
+        }
+    }
+    usleep(30000);
+    setMsg(send_msg, EOF, nullptr, nullptr, "EOF");
+    sendMsg(send_msg, call, true);
+}
 /*服务端部分*/

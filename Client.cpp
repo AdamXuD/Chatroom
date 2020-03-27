@@ -58,6 +58,12 @@ void Client::Connect() //连接服务器用函数
         user_wait();
         exit(-1);
     }
+    if (pipe(listpipe_fd) < 0)
+    {
+        cout << "Other error;" << endl;
+        user_wait();
+        exit(-1);
+    }
     epoll_fd = epoll_create(1024);
     if (epoll_fd < 0)
     {
@@ -70,7 +76,7 @@ void Client::Connect() //连接服务器用函数
     cout << "Connected." << endl;
     user_wait();
 }
-void *HeartBeat(void *pointer)
+void *Client::HeartBeat(void *pointer)
 {
     int count = 0;
     Client *ptr = (Client *)pointer;
@@ -109,6 +115,22 @@ void Client::dealwithmsg(char *Target)
         cout << "\033[34m[群聊]\033[0m";
         break;
     }
+    case QUERY:
+    {
+        cout << "\033[35m[请求]\033[0m";
+        break;
+    }
+    case EOF:
+    case LIST:
+    {
+        sendMsg(msg, listpipe_fd[1]);
+        return;
+    }
+    case FORCE_EXIT:
+    {
+        cout << msg.content << endl;
+        exit(0);
+    }
     default:
     {
         return;
@@ -138,54 +160,131 @@ void Client::mainMenu()
                           "拉取好友列表",
                           "创建群组",
                           "加入群组", //10
-                          "返回"};    //11
-    switch (menu(main_menu, 10))
+                          "查看在线列表",
+                          "拉取私聊聊天记录",
+                          "拉去群聊聊天记录",
+                          "返回"};    //14
+    switch (menu(main_menu, 14))
     {
     case 1:
     {
         command = friendlistMenu(true);
-        Privatetalk(command);
+        if (strEqual(command, "__nullstr") == false)
+        {
+            Privatetalk(command);
+        }
         break;
     }
     case 2:
     {
         command = friendlistMenu(false);
-        Grouptalk(command);
+        if (strEqual(command, "__nullstr") == false)
+        {
+            Grouptalk(command);
+        }
         break;
     }
     case 3:
     {
         input(command, "请输入好友昵称>");
         setMsg(msg, MAKEFRIEND, acc.account, nullptr, command.c_str());
-        sendMsg(msg, sock_fd);
+        sendMsg(msg, pipe_fd[1]);
+        cout << "请求已发送！" << endl;
         break;
     }
     case 4:
     {
         command = friendlistMenu(true);
-        setMsg(msg, DELETEFRIEND, acc.account, nullptr, command.c_str());
-        sendMsg(msg, sock_fd);
+        if (strEqual(command, "__nullstr") == false)
+        {
+            cout << "请输入（y/n）以同意/拒绝该事件。" << endl;
+            while (char c = getch())
+            {
+                if (c == 'y' || c == 'Y')
+                {
+                    cout << "您已同意该事件。" << endl;
+                    setMsg(msg, DELETEFRIEND, acc.account, nullptr, command.c_str());
+                    sendMsg(msg, pipe_fd[1]);
+                    break;
+                }
+                else if (c == 'n' || c == 'N')
+                {
+                    cout << "操作已取消。" << endl;
+                    break;
+                }
+                else
+                {
+                    cout << "输入有误，请重新输入！" << endl;
+                }
+            }
+        }
         break;
     }
     case 5:
     {
         getQueryBox(false);
-
-        sendMsg(msg, sock_fd);
+        map<int, string>::iterator it;
+        for (it = Querybox.begin(); it != Querybox.end(); it++)
+        {
+            cout << "id = " << it->first << endl;
+            cout << "内容：" << it->second << endl;
+            cout << endl;
+        }
+        if (Querybox.size() == 0)
+        {
+            cout << "请求列表为空！" << endl;
+            user_wait();
+        }
+        else
+        {
+            char choice[10];
+            do
+            {
+                input(choice, "请输入事件id>");
+            } while (Querybox.count(atoi(choice)) == 0);
+            cout << "您已选择id:" << choice << "，请输入（y/n）以同意/拒绝该事件。" << endl;
+            while (char c = getch())
+            {
+                if (c == 'y' || c == 'Y')
+                {
+                    cout << "您已同意该事件。" << endl;
+                    setMsg(msg, ACCEPT, acc.account, nullptr, choice);
+                    sendMsg(msg, pipe_fd[1]);
+                    break;
+                }
+                else if (c == 'n' || c == 'N')
+                {
+                    cout << "您已拒绝该事件。" << endl;
+                    setMsg(msg, REFUSE, acc.account, nullptr, choice);
+                    sendMsg(msg, pipe_fd[1]);
+                    break;
+                }
+                else
+                {
+                    cout << "输入有误，请重新输入！" << endl;
+                }
+            }
+        }
         break;
     }
     case 6:
     {
         command = friendlistMenu(true);
-        setMsg(msg, SUKI, acc.account, nullptr, command.c_str());
-        sendMsg(msg, sock_fd);
+        if (strEqual(command, "__nullstr") == false)
+        {
+            setMsg(msg, SUKI, acc.account, nullptr, command.c_str());
+            sendMsg(msg, pipe_fd[1]);
+        }
         break;
     }
     case 7:
     {
         command = friendlistMenu(true);
-        setMsg(msg, KIRAI, acc.account, nullptr, command.c_str());
-        sendMsg(msg, sock_fd);
+        if (strEqual(command, "__nullstr") == false)
+        {
+            setMsg(msg, KIRAI, acc.account, nullptr, command.c_str());
+            sendMsg(msg, pipe_fd[1]);
+        }
         break;
     }
     case 8:
@@ -197,26 +296,50 @@ void Client::mainMenu()
     {
         input(command, "请输入群名称>");
         setMsg(msg, CREATEGROUP, acc.account, nullptr, command.c_str());
-        sendMsg(msg, sock_fd);
+        sendMsg(msg, pipe_fd[1]);
         break;
     }
     case 10:
     {
         input(command, "请输入群名称>");
         setMsg(msg, JOINGROUP, acc.account, nullptr, command.c_str());
-        sendMsg(msg, sock_fd);
+        sendMsg(msg, pipe_fd[1]);
         break;
+    }
+    case 11:
+    {
+        getOnlineFriends();
+        break;
+    }
+    case 12:
+    {
+        command = friendlistMenu(true);
+        getHistory(command);
+    }
+    case 13:
+    {
+        command = friendlistMenu(false);
+        getHistory(command);
     }
     default:
     {
         break;
     }
     }
+    cout << "全服广播(请直接在下方输入消息，enter键发送，/menu唤出菜单)>" << endl;
 }
 
 string Client::friendlistMenu(bool isFriend) //1为提取群组 0为提取好友
 {
+    queryFriendList(false);
     string tmp[friendlist.size()];
+    if (friendlist.size() == 0)
+    {
+        cout << "好友列表为空，请先尝试刷新或添加好友！" << endl;
+        user_wait();
+        return "__nullstr";
+    }
+    cout << "请用上下键选择目标>" << endl;
     map<string, int>::iterator it;
     int i = 0;
     for (it = friendlist.begin(); it != friendlist.end(); it++)
@@ -249,18 +372,19 @@ int Client::getQueryBox(bool show)
     }
     sleep(1);
     setMsg(msg, QUERYBOX, acc.account, nullptr, nullptr);
-    if (sendMsg(msg, sock_fd) < 0)
+    if (sendMsg(msg, pipe_fd[1]) < 0)
     {
         cout << "请求失败，请检查网络连接！" << endl;
     }
     else
     {
+        Querybox.clear();
         while (1)
         {
-            recvMsg(sock_fd, msg, true);
-            if (msg.type == QUERYBOX)
+            recvMsg(listpipe_fd[0], msg, true);
+            if (msg.type == LIST)
             {
-                Querybox.push_back(msg);
+                Querybox[atoi(msg.fromUser)] = msg.content;
                 if (show)
                 {
                     cout << "id：" << msg.fromUser << endl;
@@ -282,8 +406,8 @@ int Client::getQueryBox(bool show)
 
 void Client::Start() //客户端入口
 {
-    static struct epoll_event events[2];
     char buf[65535];
+    static struct epoll_event events[2];
     Connect();
     if (LOGINMODE)
     {
@@ -307,13 +431,12 @@ void Client::Start() //客户端入口
         cout << "程序出错，程序即将退出！" << endl;
         exit(-1);
     }
-    else if (pid > 0) //子进程执行区（pid = 0）
+    else if (pid == 0) //子进程执行区（pid = 0）
     {
         close(pipe_fd[0]); //子进程负责写入，关闭读端
-        cout << "正在获取信息..." << endl;
-        queryFriendList(false);
+        close(listpipe_fd[1]);
+        queryFriendList(true);
         getQueryBox(true);
-        cout << "获取完毕！" << endl;
         cout << "全服广播(请直接在下方输入消息，enter键发送，/menu唤出菜单)>" << endl;
         while (isLogin)
         {
@@ -335,15 +458,13 @@ void Client::Start() //客户端入口
     else //父进程执行区（pid > 0）
     {
         close(pipe_fd[1]); //关闭写端
-
+        close(listpipe_fd[0]);
         char Target[32] = {0}; //存储聊天对象
-
         while (isLogin)
         {
             int epoll_events_count = epoll_wait(epoll_fd, events, 2, -1);
             for (int i = 0; i < epoll_events_count; i++)
             {
-                memset(buf, 0, sizeof(buf));
                 if (events[i].data.fd == sock_fd) //epoll响应来自服务器标识符时
                 {
                     recvMsg(sock_fd, msg, false);
@@ -352,17 +473,21 @@ void Client::Start() //客户端入口
                 else //管道标识符响应时
                 {
                     recvMsg(pipe_fd[0], msg, false);
-                    if (msg.type == PIPE)
+                    switch (msg.type)
+                    {
+                    case PIPE:
                     {
                         strcpy(Target, msg.toUser);
+                        break;
                     }
-                    else
+                    default:
                     {
                         if (sendMsg(msg, sock_fd) < 0)
                         {
                             cout << "发送失败！" << endl;
                             cout << "服务器连接失败，请检查网络连接！" << endl;
                         }
+                    }
                     }
                 }
             }

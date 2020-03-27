@@ -3,9 +3,16 @@
 extern char content[5120];
 extern char query[10240];
 
-void Server::adminMsg(const char *content, char *target)
+void Server::adminMsg(const char *content, char *target, bool query)
 {
-    setMsg(send_msg, PRIVTALK, ADMIN, target, content);
+    if (query)
+    {
+        setMsg(send_msg, QUERY, ADMIN, target, content);
+    }
+    else
+    {
+        setMsg(send_msg, PRIVTALK, ADMIN, target, content);
+    }
     Privatetalk(send_msg);
 }
 
@@ -105,6 +112,11 @@ void Server::Prepare()
 void Server::BroadcastMsg(int call, Msg msg)
 {
     cout << "A user sends a broadcast message." << endl;
+    if (strEqual(msg.fromUser, ADMIN) == false)
+    {
+        sprintf(query, "insert into history values (null, '%s', '%s', '%s', '%s');", msg.fromUser, "ALL", msg.content, getTime());
+        Mysql_query(&mysql, query);
+    }
     map<int, pair<string, int>>::iterator i; //声明一个迭代器（相当于int i
     for (i = onlinelist.begin(); i != onlinelist.end(); i++)
     {
@@ -128,12 +140,12 @@ void Server::sendQueryBox(int call)
         usleep(30000);
         if (row != NULL)
         {
-            setMsg(send_msg, QUERYBOX, row[0], nullptr, row[1]);
+            setMsg(send_msg, LIST, row[0], nullptr, row[1]);
             sendMsg(send_msg, call, true);
         }
     }
     usleep(30000);
-    setMsg(send_msg, EOF, nullptr, nullptr, nullptr);
+    setMsg(send_msg, EOF, nullptr, nullptr, "EOF");
     sendMsg(send_msg, call, true);
 }
 
@@ -210,6 +222,15 @@ void Server::dealWithMsg(int call)
         sendQueryBox(call);
         break;
     }
+    case ONLINELIST:
+    {
+        sendOnlineFriends(call);
+        break;
+    }
+    case HISTORY:
+    {
+        sendHistory(call);
+    }
     case COMMAND: //如果收到命令类消息
     {
         cout << "illegal message:" << recv_msg.content << endl;
@@ -241,6 +262,7 @@ void Server::dealWithMsg(int call)
     }
     }
 }
+
 void *Server::dealWithHeartbeat(void *pointer)
 {
     cout << "Heartbeat thread has been ready." << endl;

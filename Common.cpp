@@ -163,12 +163,21 @@ void deleteepollfd(int epoll_fd, int fd)
     epoll_ctl(epoll_fd, EPOLL_CTL_DEL, fd, &tmp);
 }
 
-struct tm *getTime()
+char *getTime()
 {
     time_t nowtime;
     time(&nowtime);
     nowtime = time(NULL);
-    return localtime(&nowtime);
+    struct tm *t_set = localtime(&nowtime);
+    static char str[64];
+    sprintf(str, "%d-%d-%d %d:%d:%d",
+            t_set->tm_year + 1900,
+            t_set->tm_mon + 1,
+            t_set->tm_mday,
+            t_set->tm_hour,
+            t_set->tm_min,
+            t_set->tm_sec);
+    return str;
 }
 
 int Mysql_query(MYSQL *mysql, const char *q)
