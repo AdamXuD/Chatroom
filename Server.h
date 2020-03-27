@@ -7,7 +7,7 @@ public:
     Server();
     void Prepare();
     //void Mysql_query(MYSQL *mysql, const char *q);
-    void adminMsg(const char *content, char *target); //错误反馈
+    void adminMsg(const char *content, char *target, bool query = false); //错误反馈
     void addonlinelist(int clnt_fd, char *acc = nullptr);//储存在线用户
     void BroadcastMsg(int call, Msg msg);                //群发
     void Onlineremind(int call);               //上线提醒
@@ -15,6 +15,7 @@ public:
     void Signup(int call);                     //注册处理函数
     static void *dealWithHeartbeat(void *ptr); //处理心跳包
     void dealwithQuery();
+    void sendQueryBox(int call); 
     void addFriend(char *account, char *whichfriend);
     int groupPermission(char *Group, char *Member);
     /*好友列表部分*/
@@ -25,6 +26,7 @@ public:
     void createFriendList(); //注册完成时创建该用户的好友列表
     void sendFriendList(int call);   //发送好友列表（登录后马上调用，以获取该用户的好友列表）
     void createQuerybox();
+    void sendOnlineFriends(int call);
     /*好友列表部分*/
     /*群聊及其权限部分*/
     void sendAdminMsg(Msg message, bool sw_query, char *Group = nullptr, char *fromUser = nullptr);
@@ -41,6 +43,7 @@ public:
     /*私聊部分*/
     void Privatetalk(Msg msg); //处理用户私聊请求
     /*私聊部分*/
+    void sendHistory(int call);
     void dealWithMsg(int call); //消息分类处理
     void Start();               //服务端程序入口
     ~Server();//析构函数

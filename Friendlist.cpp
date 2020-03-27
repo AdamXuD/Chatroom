@@ -5,29 +5,33 @@ extern char content[5120];
 extern char query[10240];
 
 /*客户端部分*/
-void Client::queryFriendList() //请求好友列表
+void Client::queryFriendList(bool show) //请求好友列表
 {
+    if (show)
+    {
+        cout << "正在请求好友列表..." << endl;
+    }
+    sleep(1);
     setMsg(msg, QUERYFRIENDLIST, acc.account, nullptr, nullptr);
-    if (sendMsg(msg, sock_fd) < 0)
+    if (sendMsg(msg, pipe_fd[1]) < 0)
     {
         cout << "请求失败，请检查网络连接！" << endl;
     }
     else
     {
-        cout << "正在请求好友列表..." << endl;
-        bool isEnd = false;
+        friendlist.clear();
         fstream fl;
         fl.open("friendlist", ios::out);
         fl << "account flag" << endl;
-        while (!isEnd)
+        while (1)
         {
-            recvMsg(sock_fd, msg, false);
+            recvMsg(listpipe_fd[0], msg, true);
             if (msg.type == LIST)
             {
-                if (strcmp(msg.content, "") != 0)
+                fl << msg.fromUser << " " << msg.content << endl;
+                friendlist[msg.fromUser] = atoi(msg.content);
+                if (show)
                 {
-                    fl << msg.fromUser << " " << msg.content << endl;
-                    friendlist[msg.fromUser] = atoi(msg.content);
                     cout << msg.fromUser << " ";
                     switch (atoi(msg.content))
                     {
@@ -58,14 +62,45 @@ void Client::queryFriendList() //请求好友列表
                     }
                     }
                 }
-                else
-                {
-                    isEnd = true;
-                }
+            }
+            else if (msg.type == EOF)
+            {
+                break;
+            }
+        }
+        if (show)
+        {
+            cout << "请求完毕！" << endl;
+        }
+        fl.close();
+    }
+}
+
+void Client::getOnlineFriends()
+{
+    cout << "正在请求在线列表..." << endl;
+    sleep(1);
+    setMsg(msg, ONLINELIST, acc.account, nullptr, nullptr);
+    if (sendMsg(msg, pipe_fd[1]) < 0)
+    {
+        cout << "请求失败，请检查网络连接！" << endl;
+    }
+    else
+    {
+        cout << "在线好友如下：" << endl;
+        while (1)
+        {
+            recvMsg(listpipe_fd[0], msg, true);
+            if (msg.type == LIST)
+            {
+                cout << msg.fromUser << endl;
+            }
+            else if (msg.type == EOF)
+            {
+                break;
             }
         }
         cout << "请求完毕！" << endl;
-        fl.close();
     }
 }
 /*客户端部分*/
@@ -110,7 +145,7 @@ void Server::makeFriendQuery() //添加好友
             sprintf(content, "用户 %s 请求添加你为好友！", recv_msg.fromUser);
             sprintf(query, "insert into %s_querybox values (null, '%s', '%s', '%s', '%s');", recv_msg.content, "FRIEND", recv_msg.fromUser, recv_msg.content, content);
             Mysql_query(&mysql, query);
-            adminMsg(content, recv_msg.content);
+            adminMsg(content, recv_msg.content, true);
         }
         else
         {
@@ -217,17 +252,53 @@ void Server::sendFriendList(int call) //发送好友列表（登录后马上调�
     res = mysql_store_result(&mysql);
     while (row = mysql_fetch_row(res))
     {
+        usleep(30000);
         if (row != NULL)
         {
             setMsg(send_msg, LIST, row[0], nullptr, row[1]);
-            sendMsg(send_msg, call);
-        }
-        else
-        {
-            setMsg(send_msg, LIST, nullptr, nullptr, nullptr);
-            sendMsg(send_msg, call);
-            break;
+            sendMsg(send_msg, call, true);
         }
     }
+    usleep(30000);
+    setMsg(send_msg, EOF, nullptr, nullptr, "EOF");
+    sendMsg(send_msg, call, true);
+}
+
+void Server::sendOnlineFriends(int call)
+{
+    string friendlist[1536];
+    int i = 0;
+    sprintf(query, "select account, flag from %s_friendlist", recv_msg.fromUser);
+    Mysql_query(&mysql, query);
+    MYSQL_RES *res;
+    MYSQL_ROW row;
+    res = mysql_store_result(&mysql);
+    while (row = mysql_fetch_row(res))
+    {
+        if (row != NULL)
+        {
+            if (strEqual(row[1], "0"))
+            {
+                friendlist[i] = row[0];
+                i++;
+            }
+        }
+    }
+    map<int, pair<string, int>>::iterator it;
+    for (it = onlinelist.begin(); it != onlinelist.end(); it++)
+    {
+        for (int j = 0; j < i; j++)
+        {
+            if (strEqual(it->second.first, friendlist[j].c_str()))
+            {
+                usleep(30000);
+                setMsg(send_msg, LIST, it->second.first.c_str(), nullptr, nullptr);
+                sendMsg(send_msg, call, true);
+            }
+        }
+    }
+    usleep(30000);
+    setMsg(send_msg, EOF, nullptr, nullptr, "EOF");
+    sendMsg(send_msg, call, true);
 }
 /*服务端部分*/
