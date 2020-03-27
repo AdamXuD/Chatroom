@@ -1,0 +1,42 @@
+CREATE TABLE `friendlist` (
+  `account` varchar(32) NOT NULL DEFAULT '',
+  `flag` enum('0','1','2','3') NOT NULL DEFAULT '0',
+  KEY `account` (`account`),
+  CONSTRAINT `friendlist_ibfk_1` FOREIGN KEY (`account`) REFERENCES `userinfo` (`account`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8
+
+CREATE TABLE `group` (
+  `account` varchar(32) DEFAULT NULL,
+  `flag` enum('0','1','2') NOT NULL DEFAULT '0',
+  KEY `account` (`account`),
+  CONSTRAINT `group_ibfk_1` FOREIGN KEY (`account`) REFERENCES `userinfo` (`account`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8
+
+CREATE TABLE `groupinfo` (
+  `group` varchar(32) NOT NULL DEFAULT '',
+  PRIMARY KEY (`group`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8
+
+CREATE TABLE `history` (
+  `Id` int(11) NOT NULL AUTO_INCREMENT,
+  `fromUser` varchar(32) DEFAULT NULL,
+  `Target` varchar(32) DEFAULT NULL,
+  `content` text,
+  `time` datetime DEFAULT NULL,
+  PRIMARY KEY (`Id`)
+) ENGINE=InnoDB AUTO_INCREMENT=19 DEFAULT CHARSET=utf8
+
+CREATE TABLE `querybox` (
+  `Id` int(11) NOT NULL AUTO_INCREMENT,
+  `type` varchar(10) NOT NULL DEFAULT '',
+  `fromuser` varchar(32) NOT NULL DEFAULT '',
+  `target` varchar(32) NOT NULL DEFAULT '',
+  `content` text NOT NULL,
+  PRIMARY KEY (`Id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8
+
+CREATE TABLE `userinfo` (
+  `account` varchar(32) NOT NULL DEFAULT '',
+  `pwd` varchar(32) DEFAULT NULL,
+  PRIMARY KEY (`account`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8
