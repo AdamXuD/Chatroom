@@ -13,6 +13,7 @@ public:
     void fileLogin(); //本地凭据登录
     static void *sendHeartBeats(void *pointer); //定时发送心跳包
     void dealWithQuery(string command);
+    void mainMenu();
 
     void Start();
     /*好友列表部分*/

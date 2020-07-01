@@ -87,60 +87,85 @@ void *HeartBeat(void *pointer)
     }
 }
 
-void Client::dealWithQuery(string command)
+// void Client::dealWithQuery(string command)
+// {
+//     if (strEqual(command, "makefriend "))
+//     {
+//         setMsg(msg, MAKEFRIEND, acc.account, nullptr, command.substr(sizeof("makefriend ") - 1).c_str());
+//     }
+//     else if (strEqual(command, "deletefriend "))
+//     {
+//         setMsg(msg, DELETEFRIEND, acc.account, nullptr, command.substr(sizeof("deletefriend ") - 1).c_str());
+//     }
+//     else if (strEqual(command, "accept "))
+//     {
+//         setMsg(msg, ACCEPT, acc.account, nullptr, command.substr(sizeof("accept ") - 1).c_str());
+//     }
+//     else if (strEqual(command, "refuse "))
+//     {
+//         setMsg(msg, REFUSE, acc.account, nullptr, command.substr(sizeof("refuse ") - 1).c_str());
+//     }
+//     else if (strEqual(command, "suki "))
+//     {
+//         setMsg(msg, SUKI, acc.account, nullptr, command.substr(sizeof("suki ") - 1).c_str());
+//     }
+//     else if (strEqual(command, "kirai "))
+//     {
+//         setMsg(msg, KIRAI, acc.account, nullptr, command.substr(sizeof("kirai ") - 1).c_str());
+//     }
+//     else if (strEqual(command, "queryfriendlist"))
+//     {
+//         queryFriendList();
+//         return;
+//     }
+//     else if (strEqual(command, "joingroup "))
+//     {
+//         setMsg(msg, JOINGROUP, acc.account, nullptr, command.substr(sizeof("joingroup ") - 1).c_str());
+//     }
+//     else if (strEqual(command, "creategroup "))
+//     {
+//         setMsg(msg, CREATEGROUP, acc.account, nullptr, command.substr(sizeof("creategroup ") - 1).c_str());
+//     }
+//     else
+//     {
+//         cout << "指令有误，请检查指令格式！" << endl;
+//         return;
+//     }
+//     if (sendMsg(msg, sock_fd) < 0)
+//     {
+//         cout << "请求失败，请检查网络连接！" << endl;
+//     }
+//     /*指令定义解释，可按自己需要做出改变
+//     cout << msg.type << endl; //消息类型（宏定义）
+//     cout << msg.fromUser << endl; //来自用户 （默认为acc.account，即目前登录用户名称）
+//     cout << msg.toUser << endl; //发送到用户（当信息为指令类型时该项缺省）
+//     cout << msg.content << endl; //指令目标用户 （即/"command" [target]中的target）
+//     */
+// }
+
+void Client::mainMenu()
 {
-    if (strEqual(command, "makefriend "))
+    string command;
+    string main_menu[] = {"发起私聊", // 1
+                          "发起群聊",
+                          "返回"};
+    switch (menu(main_menu, 3)) //menu()的用法请查看注释
     {
-        setMsg(msg, MAKEFRIEND, acc.account, nullptr, command.substr(sizeof("makefriend ") - 1).c_str());
+        case 1:
+        {
+            Privatetalk();
+            break;
+        }
+        case 2:
+        {
+            Grouptalk();
+            break;
+        }
+        default:
+        {
+            break;
+        }
     }
-    else if (strEqual(command, "deletefriend "))
-    {
-        setMsg(msg, DELETEFRIEND, acc.account, nullptr, command.substr(sizeof("deletefriend ") - 1).c_str());
-    }
-    else if (strEqual(command, "accept "))
-    {
-        setMsg(msg, ACCEPT, acc.account, nullptr, command.substr(sizeof("accept ") - 1).c_str());
-    }
-    else if (strEqual(command, "refuse "))
-    {
-        setMsg(msg, REFUSE, acc.account, nullptr, command.substr(sizeof("refuse ") - 1).c_str());
-    }
-    else if (strEqual(command, "suki "))
-    {
-        setMsg(msg, SUKI, acc.account, nullptr, command.substr(sizeof("suki ") - 1).c_str());
-    }
-    else if (strEqual(command, "kirai "))
-    {
-        setMsg(msg, KIRAI, acc.account, nullptr, command.substr(sizeof("kirai ") - 1).c_str());
-    }
-    else if (strEqual(command, "queryfriendlist"))
-    {
-        queryFriendList();
-        return;
-    }
-    else if (strEqual(command, "joingroup "))
-    {
-        setMsg(msg, JOINGROUP, acc.account, nullptr, command.substr(sizeof("joingroup ") - 1).c_str());
-    }
-    else if (strEqual(command, "creategroup "))
-    {
-        setMsg(msg, CREATEGROUP, acc.account, nullptr, command.substr(sizeof("creategroup ") - 1).c_str());
-    }
-    else
-    {
-        cout << "指令有误，请检查指令格式！" << endl;
-        return;
-    }
-    if (sendMsg(msg, sock_fd) < 0)
-    {
-        cout << "请求失败，请检查网络连接！" << endl;
-    }
-    /*指令定义解释，可按自己需要做出改变
-    cout << msg.type << endl; //消息类型（宏定义）
-    cout << msg.fromUser << endl; //来自用户 （默认为acc.account，即目前登录用户名称）
-    cout << msg.toUser << endl; //发送到用户（当信息为指令类型时该项缺省）
-    cout << msg.content << endl; //指令目标用户 （即/"command" [target]中的target）
-    */
 }
 
 void Client::Start() //客户端入口
@@ -181,23 +206,9 @@ void Client::Start() //客户端入口
             string tmp;
             getline(cin, tmp, '\n'); //按行读取指令 不跳空格的那种
             /*判断指令类型*/
-            if (*tmp.begin() == '/') //指令语意处理，若第一个字符为斜杠
+            if (strEqual(tmp, "/menu")) //指令语意处理，若第一个字符为斜杠
             {
-                tmp.erase(0, 1); //吃掉一个斜杠
-                string command = tmp;
-                if (strEqual(command, "private ")) //如果指令是私聊的话
-                {
-                    Privatetalk();
-                }
-                else if (strEqual(command, "grouptalk "))
-                {
-                    Grouptalk();
-                }
-                else
-                {
-                    dealWithQuery(command);
-                }
-                command.clear();
+                    mainMenu();
             }
             else
             {

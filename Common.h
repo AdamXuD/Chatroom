@@ -19,7 +19,7 @@
 //#include<ncurses.h>  //用户界面库
 #include <termio.h>
 
-#define LOGINMODE 1 //默认关闭登录模式
+#define LOGINMODE 0 //默认关闭登录模式
 
 #define ADMIN "Admin"
 

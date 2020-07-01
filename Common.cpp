@@ -173,7 +173,7 @@ int getch()
 #endif
 }
 
-int menu(string list[], int size) //这个
+int menu(string list[], int size) //第一个参数是菜单列表，第二个参数是菜单项数量
 {
     int select = 1;
     while (1)
