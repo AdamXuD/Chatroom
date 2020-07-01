@@ -19,7 +19,8 @@ public:
     /*好友列表部分*/
     void makeFriend();                          //添加好友
     void deleteFriend();                        //删除好友
-    void queryFriendList(); //请求好友列表
+    void queryFriendList(bool show);    //请求好友列表
+    int  getQueryBox(bool show);        //获取请求列表
     void setSuki();           //设为特别关心
     void setKirai();          //拉黑名单
     /*好友列表部分*/
@@ -46,6 +47,7 @@ private:
     int epoll_fd;                //epoll二叉树根的句柄，真的玄妙
     bool isLogin;                //登陆状态
     map<int, string> onlinelist; //用map记录在线列表（包含名称和）（一一对应）
+    map<int, string> Querybox;   //客户端使用该容器临时存储请求id和请求内容
     struct Account acc;          //账号信息
 protected:
 };

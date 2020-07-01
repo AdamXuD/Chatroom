@@ -147,9 +147,17 @@ void Client::mainMenu()
 {
     string command;
     string main_menu[] = {"发起私聊", // 1
-                          "发起群聊",
+                          "发起群聊", // 2
+                          "添加好友", // 3
+                          "删除好友",  // 4
+                          "获取请求", // 5
+                          "设置好友为特别关心",//6
+                          "设置好友为黑名单好友",//7
+                          "请求好友列表",//8
+                          "接受好友请求",//9
+                          "拒绝好友请求",//10
                           "返回"};
-    switch (menu(main_menu, 3)) //menu()的用法请查看注释
+    switch (menu(main_menu, 11)) //menu()的用法请查看注释
     {
         case 1:
         {
@@ -159,6 +167,87 @@ void Client::mainMenu()
         case 2:
         {
             Grouptalk();
+            break;
+        }
+        case 3:
+        {
+            makeFriend();
+            break;
+        }
+        case 4:
+        {
+            deleteFriend();
+            break;
+        }
+        case 5:
+        {
+            getQueryBox(false); //获取请求列表
+            map<int, string>::iterator it;
+            for (it = Querybox.begin(); it != Querybox.end(); it++)
+            {
+                cout << "id = " << it->first << endl;
+                cout << "内容：" << it->second << endl;
+                cout << endl;
+            } //遍历已接受到的请求列表
+            if (Querybox.size() == 0) //接收到的请求列表为空
+            {
+                cout << "请求列表为空！" << endl;
+                user_wait();
+            }
+            else
+            {
+                char choice[10];
+                do
+                {
+                    input(choice, "请输入事件id>");
+                } while (Querybox.count(atoi(choice)) == 0);
+                cout << "您已选择id:" << choice << "，请输入（y/n）以同意/拒绝该事件。" << endl;
+                while (char c = getch())
+                {
+                    if (c == 'y' || c == 'Y')
+                    {
+                        cout << "您已同意该事件。" << endl;
+                        setMsg(msg, ACCEPT, acc.account, nullptr, choice);
+                        sendMsg(msg, pipe_fd[1]); //我们应严格遵守所有消息都有父进程发的原则
+                        break;
+                    }
+                    else if (c == 'n' || c == 'N')
+                    {
+                        cout << "您已拒绝该事件。" << endl;
+                        setMsg(msg, REFUSE, acc.account, nullptr, choice);
+                        sendMsg(msg, pipe_fd[1]);
+                        break;
+                    }
+                    else
+                    {
+                        cout << "输入有误，请重新输入！" << endl;
+                    }
+                }
+            }
+        }
+        case 6:
+        {
+            setSuki();
+            break;
+        }
+        case 7:
+        {
+            setKirai();
+            break;
+        }
+        case 8:
+        {
+            queryFriendList(true);
+            break;
+        }
+        case 9:
+        {
+            setMsg(msg, ACCEPT, acc.account, nullptr, command.substr(sizeof("accept ") - 1).c_str());
+            break;
+        }
+        case 10:
+        {
+            setMsg(msg, REFUSE, acc.account, nullptr, command.substr(sizeof("refuse ") - 1).c_str());
             break;
         }
         default:
