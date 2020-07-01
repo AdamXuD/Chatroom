@@ -16,12 +16,16 @@ public:
 
     /*===========================================待完成部分===========================================*/
     /*好友列表部分*/
-    void makeFriend();       //添加好友
+    void makeFriendQuery();
+    bool targetExisted(bool isFriend);//判断好友是否存在
+    void adminMsg(const char *content, char *target, bool query);
+    void sendQueryBox(int call);   //获取请求ID
+    void addFriend(char *account, char *whichfriend);
+    void sendFriendList(int call);  //发送好友列表（登录后马上调用，以获取该用户的好友列表）
     void deleteFriend();     //删除好友
-    void setSuki();          //设为特别关心
-    void setKirai();         //拉黑名单
+    void setFriendFlag();    //设为特别关心或黑名单
+    void createQuerybox();   //注册完成时创建该用户的请求列表
     void createFriendList(); //注册完成时创建该用户的好友列表
-    void sendFriendList();   //发送好友列表（登录后马上调用，以获取该用户的好友列表）
     /*好友列表部分*/
 
     /*群聊及其权限部分*/
