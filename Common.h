@@ -17,6 +17,8 @@
 #include <map>
 #include <pthread.h>
 //#include<ncurses.h>  //用户界面库
+#include <termio.h>
+
 #define LOGINMODE 1 //默认关闭登录模式
 
 #define ADMIN "Admin"
@@ -85,3 +87,6 @@ void addepollfd(int epoll_fd, int fd); //增加监听描述符
 int input();
 
 int Mysql_query(MYSQL *mysql, const char *q);
+
+int getch();
+int menu(string list[], int size); //这个
