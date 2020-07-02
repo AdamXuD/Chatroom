@@ -220,15 +220,6 @@ int menu(string list[], int size) //第一个参数是菜单列表，第二个�
     }
 }
 
-void input(char *ptr, const char *tips) //输入框
-{
-    if (tips != nullptr)
-    {
-        cout << tips << endl;
-    }
-    cin.getline(ptr, 65535);
-}
-
 void input(string &str, const char *tips) //输入框
 {
     if (tips != nullptr)
@@ -236,22 +227,4 @@ void input(string &str, const char *tips) //输入框
         cout << tips << endl;
     }
     getline(cin, str, '\n');
-}
-
-void input(int &num, const char *tips)
-{
-    if (tips != nullptr)
-    {
-        cout << tips << endl;
-    }
-    cin >> num;
-    getchar();
-}
-
-int input()
-{
-    int i;
-    cin >> i;
-    getchar();
-    return i;
 }

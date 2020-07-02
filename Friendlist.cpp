@@ -217,6 +217,50 @@ bool Server::targetExisted(bool isFriend)
         return false;
     }
 }
+
+void Server::dealwithQuery()
+{
+    char content[5120];
+    char query[10240];
+    sprintf(query, "select type, fromuser, target from %s_querybox where id = %s;", recv_msg.fromUser, recv_msg.content);
+    Mysql_query(&mysql, query);
+    MYSQL_RES res;
+    MYSQL_ROW row;
+    res = *mysql_store_result(&mysql);
+    row = mysql_fetch_row(&res);
+    if (row != NULL)
+    {
+        char type[10], fromUser[32], target[32];
+        strcpy(type, row[0]);
+        strcpy(fromUser, row[1]);
+        strcpy(target, row[2]);
+        if (recv_msg.type == ACCEPT)
+        {
+            if (strEqual(type, "FRIEND"))
+            {
+                addFriend(target, fromUser);
+                sprintf(query, "delete from %s_querybox where id = %s", recv_msg.fromUser, recv_msg.content);
+                Mysql_query(&mysql, query);
+            }
+            else if (strEqual(type, "GROUP"))
+            {
+                // addGroupMember(target, fromUser);
+                sprintf(query, "delete from %s_querybox where id = %s", recv_msg.fromUser, recv_msg.content);
+                Mysql_query(&mysql, query);
+            }
+        }
+        else if (recv_msg.type == REFUSE)
+        {
+            sprintf(query, "delete from %s_querybox where id = %s", recv_msg.fromUser, recv_msg.content);
+            Mysql_query(&mysql, query);
+        }
+    }
+    else
+    {
+        adminMsg("请求失败，请检查请求ID是否正确！", recv_msg.fromUser);
+    }
+}
+
 void Server::adminMsg(const char *content, char *target, bool query)
 {
     if (query)
@@ -254,7 +298,7 @@ void Server::sendQueryBox(int call)
 void Server::deleteFriend() //删除好友
 {
     cout << "A user is trying to delete friend." << endl;
-    char query[1024];
+    char query[10240];
     sprintf(query, "delete from %s_friendlist where account = '%s';", recv_msg.fromUser, recv_msg.content);
     Mysql_query(&mysql, query);
     sprintf(query, "delete from %s_friendlist where account = '%s';", recv_msg.content, recv_msg.fromUser);

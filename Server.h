@@ -26,6 +26,8 @@ public:
     void setFriendFlag();    //设为特别关心或黑名单
     void createQuerybox();   //注册完成时创建该用户的请求列表
     void createFriendList(); //注册完成时创建该用户的好友列表
+    void dealwithQuery();
+
     /*好友列表部分*/
 
     /*群聊及其权限部分*/

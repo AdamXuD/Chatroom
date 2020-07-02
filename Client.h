@@ -16,6 +16,8 @@ public:
     void mainMenu();
 
     void Start();
+    void dealwithmsg(char *Target);
+
     /*好友列表部分*/
     void makeFriend();                          //添加好友
     void deleteFriend();                        //删除好友

@@ -102,7 +102,4 @@ int Mysql_query(MYSQL *mysql, const char *q);
 int getch();
 int menu(string list[], int size); //这个
 
-void input(char *ptr, const char *tips = nullptr);   //输入框
 void input(string &str, const char *tips = nullptr); //输入框
-void input(int &num, const char *tips = nullptr);    //输入框
-int input();

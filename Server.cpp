@@ -113,25 +113,10 @@ void Server::dealWithMsg(int call)
         makeFriendQuery();
         break;
     }
-    case ACCEPT:{
-        if (strEqual(type, "FRIEND"))
-        {
-            addFriend(target, fromUser);
-            sprintf(query, "delete from %s_querybox where id = %s", recv_msg.fromUser, recv_msg.content);
-            Mysql_query(&mysql, query);
-        }
-        else if (strEqual(type, "GROUP"))
-        {
-            addGroupMember(target, fromUser);
-            sprintf(query, "delete from %s_querybox where id = %s", recv_msg.fromUser, recv_msg.content);
-            Mysql_query(&mysql, query);
-        }
-        break;
-    }
+    case ACCEPT:
     case REFUSE:
     {
-        sprintf(query, "delete from %s_querybox where id = %s", recv_msg.fromUser, recv_msg.content);
-        Mysql_query(&mysql, query);
+        dealwithQuery();
         break;
     }
     case DELETEFRIEND:
@@ -151,7 +136,7 @@ void Server::dealWithMsg(int call)
     }
     case QUERYFRIENDLIST:
     {
-        sendFriendList(recv_msg.fromUser);
+        sendFriendList(call);
         break;
     }
     case CREATEGROUP:
