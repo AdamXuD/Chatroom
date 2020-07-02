@@ -43,11 +43,15 @@ public:
     struct Msg msg; //消息
 private:
     int pipe_fd[2];              //读写管道pipe()……
+    int listpipe_fd[2];          //列表接收管道
+
     int pid;                     //多进程时fork()返回进程号时用得到
     int epoll_fd;                //epoll二叉树根的句柄，真的玄妙
     bool isLogin;                //登陆状态
     map<int, string> onlinelist; //用map记录在线列表（包含名称和）（一一对应）
     map<int, string> Querybox;   //客户端使用该容器临时存储请求id和请求内容
+    map<string, int> friendlist; //用list类存储好友列表
+
     struct Account acc;          //账号信息
 protected:
 };

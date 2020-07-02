@@ -18,7 +18,7 @@ public:
     /*好友列表部分*/
     void makeFriendQuery();
     bool targetExisted(bool isFriend);//判断好友是否存在
-    void adminMsg(const char *content, char *target, bool query);
+    void adminMsg(const char *content, char *target, bool query = false);
     void sendQueryBox(int call);   //获取请求ID
     void addFriend(char *account, char *whichfriend);
     void sendFriendList(int call);  //发送好友列表（登录后马上调用，以获取该用户的好友列表）

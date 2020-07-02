@@ -32,6 +32,7 @@
 #define DELETEFRIEND 111
 #define SUKI 112
 #define KIRAI 113
+#define ONLINELIST 114
 
 #define ACCEPT 121
 #define REFUSE 120
@@ -45,12 +46,22 @@
 #define LIST 140
 #define QUERYFRIENDLIST 141
 #define QUERYMEMBER 142
+#define QUERYBOX 143
+#define QUERY 144
+
+#define FORCE_EXIT 15
+
+#define HISTORY 16
 
 #define ALL 2
 #define PRIVTALK 3
 #define GROUPTALK 4
 #define HEARTBEAT 5
+
 #define PIPE 6
+#define WAIT 60
+#define CONTINUE 61
+
 #define LOGIN 7
 #define SIGNUP 8
 
@@ -90,3 +101,8 @@ int Mysql_query(MYSQL *mysql, const char *q);
 
 int getch();
 int menu(string list[], int size); //这个
+
+void input(char *ptr, const char *tips = nullptr);   //输入框
+void input(string &str, const char *tips = nullptr); //输入框
+void input(int &num, const char *tips = nullptr);    //输入框
+int input();

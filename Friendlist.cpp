@@ -1,9 +1,11 @@
 #include "Client.h"
 #include "Server.h"
 
+
 /*客户端部分*/
 void Client::makeFriend() //添加好友
 {
+    string command;
     input(command, "请输入需要添加的好友昵称>");
     setMsg(msg, MAKEFRIEND, acc.account, nullptr, command.substr(sizeof("makefriend ") - 1).c_str());
     sendMsg(msg, pipe_fd[1]);
@@ -11,6 +13,7 @@ void Client::makeFriend() //添加好友
 }
 void Client::deleteFriend() //删除好友
 {
+    string command;
     input(command, "请输入需要删除的好友昵称>");
     setMsg(msg, DELETEFRIEND, acc.account, nullptr, command.c_str());
     sendMsg(msg, pipe_fd[1]);
@@ -88,6 +91,7 @@ void Client::queryFriendList(bool show) //请求好友列表
 }
 void Client::setSuki() //设为特别关心
 {
+    string command;
     input(command, "请输入特别关心的好友昵称>");
     setMsg(msg, SUKI, acc.account, nullptr, command.substr(sizeof("suki ") - 1).c_str());
     sendMsg(msg, pipe_fd[1]);
@@ -95,6 +99,7 @@ void Client::setSuki() //设为特别关心
 }
 void Client::setKirai() //拉黑名单
 {
+    string command;
     input(command, "请输入拉入黑名单的好友昵称>");
     setMsg(msg,  KIRAI, acc.account, nullptr, command.substr(sizeof("kirai ") - 1).c_str());
     sendMsg(msg, pipe_fd[1]);
@@ -142,9 +147,10 @@ int Client::getQueryBox(bool show) //show表示是否回显内容
 /*客户端部分*/
 
 /*服务端部分*/
-void Server::makeFriendQuery();
+void Server::makeFriendQuery()
 {
-    char qyery[1024];
+    char content[5120];
+    char query[10240];
     sprintf(query, "select account from userinfo where account='%s';", recv_msg.content);
     Mysql_query(&mysql, query);
     MYSQL_RES res;
@@ -174,6 +180,8 @@ void Server::makeFriendQuery();
 }
 void Server::addFriend(char *account, char *whichfriend)
 {
+    char content[5120];
+    char query[10240];
     sprintf(query, "insert into %s_friendlist values ('%s', '0');", account, whichfriend);
     Mysql_query(&mysql, query);
     sprintf(query, "insert into %s_friendlist values ('%s', '0');", whichfriend, account);
@@ -185,6 +193,8 @@ void Server::addFriend(char *account, char *whichfriend)
 }
 bool Server::targetExisted(bool isFriend)
 {
+    char content[5120];
+    char query[10240];
     if (isFriend)
     {
         sprintf(query, "select account from %s_friendlist where account='%s'", recv_msg.fromUser, recv_msg.content);
@@ -221,6 +231,8 @@ void Server::adminMsg(const char *content, char *target, bool query)
 }
 void Server::sendQueryBox(int call)
 {
+    char content[5120];
+    char query[10240];
     sprintf(query, "select id, content from `%s_querybox`", recv_msg.fromUser);
     Mysql_query(&mysql, query);
     MYSQL_RES *res;
@@ -232,12 +244,12 @@ void Server::sendQueryBox(int call)
         if (row != NULL) //结果集不为空的话
         {
             setMsg(send_msg, LIST, row[0], nullptr, row[1]); //将请求id和请求内容发送给客户端
-            sendMsg(send_msg, call, true);
+            sendMsg(send_msg, call);
         }
     }
     usleep(30000); //结束后也要象征性停三十毫秒
     setMsg(send_msg, EOF, nullptr, nullptr, "EOF"); //向客户端发送结束标志
-    sendMsg(send_msg, call, true);
+    sendMsg(send_msg, call);
 }
 void Server::deleteFriend() //删除好友
 {
@@ -250,6 +262,8 @@ void Server::deleteFriend() //删除好友
 }
 void Server::setFriendFlag() //设为特别关心或黑名单
 {
+    char content[5120];
+    char query[10240];
     if (recv_msg.type == SUKI)
     {
         sprintf(query, "update %s_friendlist set flag = '2' where account = '%s'", recv_msg.fromUser, recv_msg.content);
@@ -292,11 +306,11 @@ void Server::sendFriendList(int call) //发送好友列表（登录后马上调�
         if (row != NULL)
         {
             setMsg(send_msg, LIST, row[0], nullptr, row[1]);
-            sendMsg(send_msg, call, true);
+            sendMsg(send_msg, call);
         }
     }
     usleep(30000);
     setMsg(send_msg, EOF, nullptr, nullptr, "EOF");
-    sendMsg(send_msg, call, true);
+    sendMsg(send_msg, call);
 }
 /*服务端部分*/
