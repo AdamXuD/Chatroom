@@ -51,7 +51,7 @@ public:
 private:
     int sock_fd;                 //socket产生的句柄
     int epoll_fd;                //epoll_create()返回的句柄
-    map<int, pair<string, int>> onlinelist; //用map记录当前socket和<在线用户名，还有心跳包参数>（一一对应）
+    map<int, pair<string, int>> *onlinelist; //用map记录当前socket和<在线用户名，还有心跳包参数>（一一对应）
     Msg recv_msg;                     //收到的消息
     Msg send_msg;                       //准备发送的消息
     Account acc;                 //账号信息

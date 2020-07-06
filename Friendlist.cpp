@@ -1,7 +1,6 @@
 #include "Client.h"
 #include "Server.h"
 
-
 /*客户端部分*/
 void Client::makeFriend() //添加好友
 {
@@ -33,7 +32,7 @@ void Client::queryFriendList(bool show) //请求好友列表
     }
     else
     {
-        friendlist.clear();
+        friendlist->clear();
         fstream fl;
         fl.open("friendlist", ios::out);
         fl << "account flag" << endl;
@@ -43,37 +42,37 @@ void Client::queryFriendList(bool show) //请求好友列表
             if (msg.type == LIST)
             {
                 fl << msg.fromUser << " " << msg.content << endl;
-                friendlist[msg.fromUser] = atoi(msg.content);
+                (*friendlist)[msg.fromUser] = atoi(msg.content);
                 if (show)
                 {
                     cout << msg.fromUser << " ";
                     switch (atoi(msg.content))
                     {
-                        case 0:
-                        {
-                            cout << "[好友]" << endl;
-                            break;
-                        }
-                        case 1:
-                        {
-                            cout << "[群组]" << endl;
-                            break;
-                        }
-                        case 2:
-                        {
-                            cout << "[特别关心]" << endl;
-                            break;
-                        }
-                        case 3:
-                        {
-                            cout << "[黑名单]" << endl;
-                            break;
-                        }
-                        default:
-                        {
-                            cout << "[ERROR]" << endl;
-                            break;
-                        }
+                    case 0:
+                    {
+                        cout << "[好友]" << endl;
+                        break;
+                    }
+                    case 1:
+                    {
+                        cout << "[群组]" << endl;
+                        break;
+                    }
+                    case 2:
+                    {
+                        cout << "[特别关心]" << endl;
+                        break;
+                    }
+                    case 3:
+                    {
+                        cout << "[黑名单]" << endl;
+                        break;
+                    }
+                    default:
+                    {
+                        cout << "[ERROR]" << endl;
+                        break;
+                    }
                     }
                 }
             }
@@ -101,17 +100,17 @@ void Client::setKirai() //拉黑名单
 {
     string command;
     input(command, "请输入拉入黑名单的好友昵称>");
-    setMsg(msg,  KIRAI, acc.account, nullptr, command.substr(sizeof("kirai ") - 1).c_str());
+    setMsg(msg, KIRAI, acc.account, nullptr, command.substr(sizeof("kirai ") - 1).c_str());
     sendMsg(msg, pipe_fd[1]);
     cout << "请求已发送！" << endl;
 }
-int Client::getQueryBox(bool show) //show表示是否回显内容
+void Client::getQueryBox(bool show) //show表示是否回显内容
 {
     if (show)
     {
         cout << "正在请求待处理请求列表..." << endl;
     }
-    sleep(1); //象征性停一秒
+    sleep(1);                                             //象征性停一秒
     setMsg(msg, QUERYBOX, acc.account, nullptr, nullptr); //发送请求
     if (sendMsg(msg, pipe_fd[1]) < 0)
     {
@@ -119,13 +118,13 @@ int Client::getQueryBox(bool show) //show表示是否回显内容
     }
     else
     {
-        Querybox.clear(); //清空已有map容器
+        Querybox->clear(); //清空已有map容器
         while (1)
         {
             recvMsg(listpipe_fd[0], msg, true); //循环接收服务器消息
-            if (msg.type == LIST) //要是服务器消息类型为LIST
+            if (msg.type == LIST)               //要是服务器消息类型为LIST
             {
-                Querybox[atoi(msg.fromUser)] = msg.content; //存储
+                (*Querybox)[atoi(msg.fromUser)] = msg.content; //存储
                 if (show)
                 {
                     cout << "id：" << msg.fromUser << endl;
@@ -157,26 +156,26 @@ void Server::makeFriendQuery()
     MYSQL_ROW row;
     res = *mysql_store_result(&mysql);
     row = mysql_fetch_row(&res);
-        if (row != NULL) /*判断该用户是否存在*/
-         {
-            if (targetExisted(true) == false)
-                {
-                    sprintf(content, "用户 %s 请求添加你为好友！", recv_msg.fromUser);
-                    sprintf(query, "insert into %s_querybox values (null, '%s', '%s', '%s', '%s');", recv_msg.content, "FRIEND", recv_msg.fromUser, recv_msg.content, content);
-                    Mysql_query(&mysql, query); //将请求置入目标用户请求列表中
-                    adminMsg(content, recv_msg.content, true); //提示目标用户有人添加好友
-                }
-            else
-                {
-                    adminMsg("该用户已是您的好友，无需重复添加！", recv_msg.fromUser);
-                    //提示来源用户不能重复添加好友
-                }
-         }
+    if (row != NULL) /*判断该用户是否存在*/
+    {
+        if (targetExisted(true) == false)
+        {
+            sprintf(content, "用户 %s 请求添加你为好友！", recv_msg.fromUser);
+            sprintf(query, "insert into %s_querybox values (null, '%s', '%s', '%s', '%s');", recv_msg.content, "FRIEND", recv_msg.fromUser, recv_msg.content, content);
+            Mysql_query(&mysql, query);                //将请求置入目标用户请求列表中
+            adminMsg(content, recv_msg.content, true); //提示目标用户有人添加好友
+        }
         else
         {
-            adminMsg("好友添加请求失败，请确认该用户是否存在！", recv_msg.fromUser);
-                //提示来源用户目标好友不存在
+            adminMsg("该用户已是您的好友，无需重复添加！", recv_msg.fromUser);
+            //提示来源用户不能重复添加好友
         }
+    }
+    else
+    {
+        adminMsg("好友添加请求失败，请确认该用户是否存在！", recv_msg.fromUser);
+        //提示来源用户目标好友不存在
+    }
 }
 void Server::addFriend(char *account, char *whichfriend)
 {
@@ -187,7 +186,7 @@ void Server::addFriend(char *account, char *whichfriend)
     sprintf(query, "insert into %s_friendlist values ('%s', '0');", whichfriend, account);
     Mysql_query(&mysql, query);
     sprintf(content, "你已经和 %s 是好友啦！请手动刷新好友列表（/queryfriendlist），和他打招呼吧！", whichfriend);
-    adminMsg(content, account); //发送提示
+    adminMsg(content, account);                                                                                //发送提示
     sprintf(content, "你已经和 %s 是好友啦！请手动刷新好友列表（/queryfriendlist），和他打招呼吧！", account); //发送提示
     adminMsg(content, whichfriend);
 }
@@ -281,17 +280,17 @@ void Server::sendQueryBox(int call)
     Mysql_query(&mysql, query);
     MYSQL_RES *res;
     MYSQL_ROW row;
-    res = mysql_store_result(&mysql); //获取请求用户的消息列表
+    res = mysql_store_result(&mysql);  //获取请求用户的消息列表
     while (row = mysql_fetch_row(res)) //只要结果集不为空，循环获取下一条结果集
     {
-        usleep(30000); //象征性停三十毫秒
+        usleep(30000);   //象征性停三十毫秒
         if (row != NULL) //结果集不为空的话
         {
             setMsg(send_msg, LIST, row[0], nullptr, row[1]); //将请求id和请求内容发送给客户端
             sendMsg(send_msg, call);
         }
     }
-    usleep(30000); //结束后也要象征性停三十毫秒
+    usleep(30000);                                  //结束后也要象征性停三十毫秒
     setMsg(send_msg, EOF, nullptr, nullptr, "EOF"); //向客户端发送结束标志
     sendMsg(send_msg, call);
 }
@@ -322,18 +321,22 @@ void Server::createQuerybox() //注册完成时创建该用户的请求列表
 {
     char query[1024];
     sprintf(query, "create table %s_querybox like querybox;", acc.account);
-    if (mysql_query(&mysql, query) == 0) {
+    if (Mysql_query(&mysql, query) == 0)
+    {
         cout << "Database created list successfully." << endl;
-    } else
+    }
+    else
         cout << "Database created list abortively." << endl;
-
 }
 void Server::createFriendList() //注册完成时创建该用户的好友列表
-{   char query[1024];
-    sprintf(query, "create table %s_querybox like friendlist;", acc.account);
-    if (mysql_query(&mysql, query) == 0) {
+{
+    char query[1024];
+    sprintf(query, "create table %s_friendlist like friendlist;", acc.account);
+    if (Mysql_query(&mysql, query) == 0)
+    {
         cout << "Database created list successfully." << endl;
-    } else
+    }
+    else
         cout << "Database created list abortively." << endl;
 }
 void Server::sendFriendList(int call) //发送好友列表（登录后马上调用，以获取该用户的好友列表）

@@ -4,23 +4,27 @@ Server::Server()
 {
     sock_fd = 0;
     epoll_fd = 0;
+    onlinelist = new map<int, pair<string, int>>;
 }
 void Server::Prepare()
 {
     clear();
-    char ip[17] = {0};
-    int port;
-    cout << "请输入服务器IP：" << endl;
-    cin.clear();
-    cin.sync();
-    cin >> ip;
-    getchar();
-    cout << "请输入端口号：" << endl;
-    cin.clear();
-    cin.sync();
-    cin >> port;
-    getchar();
-    cout << "服务器启动中……" << endl;
+    cout << "Server is starting..." << endl;
+
+    Json::Reader reader;
+    Json::Value root;
+    ifstream config("config.json");
+
+    if (!config)
+    {
+        cout << "Didn't find config.json. A new config.json has been created." << endl;
+        cout << "Please finish the information in config.json first." << endl;
+        newJson("null", 0);
+        user_wait();
+        exit(-1);
+    }
+    reader.parse(config, root);
+
     sock_fd = socket(AF_INET, SOCK_STREAM, 0); //socket部分开始
     if (sock_fd < 0)
     {
@@ -28,11 +32,13 @@ void Server::Prepare()
         user_wait();
         exit(-1);
     }
+
     struct sockaddr_in serv_addr;
     memset(&serv_addr, 0, sizeof(serv_addr));
     serv_addr.sin_family = AF_INET;
-    serv_addr.sin_addr.s_addr = inet_addr(ip);
-    serv_addr.sin_port = htons((unsigned)port);
+    serv_addr.sin_addr.s_addr = inet_addr(root["Server"]["ListenIP"].asCString());
+    serv_addr.sin_port = htons(root["Server"]["Port"].asUInt());
+
     if (bind(sock_fd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0)
     {
         cout << "Socket errer;" << endl;
@@ -47,8 +53,9 @@ void Server::Prepare()
     }
     else
     {
-        cout << "Server is LISTENING..." << endl;
+        cout << "Server is LISTENING on" << root["Server"]["ListenIP"].asCString() << ":" << root["Server"]["Port"].asUInt() << endl;
     }
+
     epoll_fd = epoll_create(4096);
     if (epoll_fd < 0)
     {
@@ -61,7 +68,11 @@ void Server::Prepare()
     if (LOGINMODE)
     {
         mysql_init(&mysql);
-        if (!mysql_real_connect(&mysql, "119.3.150.236", "chatroom", "123456", "chatroom", 3306, NULL, 0))
+        if (!mysql_real_connect(&mysql, root["Server"]["ListenIP"].asCString(),
+                                root["Server"]["DatabaseAccount"].asCString(),
+                                root["Server"]["DatabasePassword"].asCString(),
+                                root["Server"]["DatabaseName"].asCString(),
+                                root["Server"]["DatabasePort"].asUInt(), NULL, 0))
         {
             cout << "Failed to connect to database: Error:" << mysql_error(&mysql) << endl;
             user_wait();
@@ -71,16 +82,17 @@ void Server::Prepare()
         {
             cout << "Success to connect database" << endl;
         }
-        mysql_set_character_set(&mysql, "utf8");//解决中文乱码问题
+        mysql_set_character_set(&mysql, "utf8"); //解决中文乱码问题
     }
     /*数据库初始化部分结束*/
+    config.close();
     user_wait();
 }
 void Server::BroadcastMsg(int call, Msg &msg)
 {
     cout << "A user sends a broadcast message." << endl;
     map<int, pair<string, int>>::iterator i; //声明一个迭代器（相当于int i
-    for (i = onlinelist.begin(); i != onlinelist.end(); i++)
+    for (i = onlinelist->begin(); i != onlinelist->end(); i++)
     {
         if (i->first != call) //除了发信者外
         {
@@ -147,19 +159,20 @@ void Server::dealWithMsg(int call)
     }
     case SETADMIN:
     {
-
     }
     case LEAVEGROUP:
     {
-
     }
     case KICKOFFMEMBER:
     {
-        
     }
     case QUERYMEMBER:
     {
-
+    }
+    case QUERYBOX:
+    {
+        sendQueryBox(call);
+        break;
     }
     case COMMAND: //如果收到命令类消息
     {
@@ -187,7 +200,7 @@ void Server::dealWithMsg(int call)
     }
     case HEARTBEAT:
     {
-        onlinelist[call].second = 0; //每收到一次心跳包心跳包参数置零
+        (*onlinelist)[call].second = 0; //每收到一次心跳包心跳包参数置零
         break;
     }
     }
@@ -198,21 +211,21 @@ void *Server::dealWithHeartbeat(void *pointer)
     Server *ptr = (Server *)pointer;
     while (1)
     {
-        map<int, pair<string, int>>::iterator i = ptr->onlinelist.begin();
-        for (; i != ptr->onlinelist.end(); i++) //遍历在线列表
+        map<int, pair<string, int>>::iterator i = ptr->onlinelist->begin();
+        for (; i != ptr->onlinelist->end(); i++) //遍历在线列表
         {
-            if (i->second.second == 5)  //若存在心跳包参数为5的
+            if (i->second.second == 5) //若存在心跳包参数为5的
             {
-                cout << i->second.first << "has been offline." << endl;  //丢人 直接踢下线
+                cout << i->second.first << "has been offline." << endl; //丢人 直接踢下线
                 close(i->first);
-                ptr->onlinelist.erase(i);
+                ptr->onlinelist->erase(i);
             }
-            else if (i->second.second < 5)  //若心跳包参数小于5
+            else if (i->second.second < 5) //若心跳包参数小于5
             {
-                i->second.second += 1;  //心跳包参数+1
+                i->second.second += 1; //心跳包参数+1
             }
         }
-        sleep(3);  //每三秒执行一次该循环
+        sleep(3); //每三秒执行一次该循环
     }
     return 0;
 }
@@ -220,8 +233,8 @@ void Server::Start() //服务端程序入口
 {
     static struct epoll_event events[16384]; //设置标识符监听队列
     Prepare();
-    pthread_t heartbeat;  //新建立一个pthread
-    if(pthread_create(&heartbeat, NULL, dealWithHeartbeat, (void *)this) < 0)  //创建一个子进程处理心跳包（传递参数为该服务器对象指针）
+    pthread_t heartbeat;                                                       //新建立一个pthread
+    if (pthread_create(&heartbeat, NULL, dealWithHeartbeat, (void *)this) < 0) //创建一个子进程处理心跳包（传递参数为该服务器对象指针）
     {
         cout << "Heartbeat thread error..." << endl;
         user_wait();
@@ -246,7 +259,7 @@ void Server::Start() //服务端程序入口
                 {
                     cout << "Login success." << endl;
                     addonlinelist(call, acc.account);
-                    cout << "Now there are " << onlinelist.size() << " user(s) online." << endl;
+                    cout << "Now there are " << onlinelist->size() << " user(s) online." << endl;
                     Onlineremind(clnt_sock);
                 }
             }

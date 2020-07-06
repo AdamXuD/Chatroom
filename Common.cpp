@@ -1,5 +1,8 @@
 #include "Common.h"
 
+char content[5120];
+char query[10240];
+
 void clear()
 {
 #ifdef __GNUC__
@@ -61,7 +64,7 @@ int recvMsg(int fd, Msg &msg, bool wait) //接收消息用接口
         memset(buf, 0, sizeof(buf));
         ret = read(fd, buf, 65535);
         memcpy(&msg, buf, sizeof(msg));
-        if(!wait)
+        if (!wait)
         {
             break;
         }
@@ -128,7 +131,6 @@ void addepollfd(int epoll_fd, int fd) //增加监听描述符
     epoll_ctl(epoll_fd, EPOLL_CTL_ADD, fd, &tmp);
     fcntl(fd, F_SETFL, fcntl(fd, F_GETFD, 0) | O_NONBLOCK); //读取标识符状态并通过位运算设置其为无阻塞
 }
-
 
 int input()
 {
@@ -227,4 +229,42 @@ void input(string &str, const char *tips) //输入框
         cout << tips << endl;
     }
     getline(cin, str, '\n');
+}
+
+void newJson(char *IP, int port)
+{
+    ofstream config("config.json");
+    Json::Value root;
+    Json::Value server;
+    Json::Value client;
+
+    server["ListenIP"] = Json::Value(IP);
+    server["Port"] = Json::Value(port);
+    server["DatabaseAccount"] = Json::Value();
+    server["DatabasePassword"] = Json::Value();
+    server["DatabaseName"] = Json::Value();
+    server["DatabasePort"] = Json::Value();
+    root["Server"] = Json::Value(server);
+
+    client["ServerIP"] = Json::Value(IP);
+    client["Port"] = Json::Value(port);
+    client["Account"] = Json::Value();
+    client["pwd"] = Json::Value();
+    root["Client"] = Json::Value(client);
+
+    Json::StyledWriter writer;
+    config << writer.write(root);
+    config.close();
+}
+
+char *Getpass(const char *tips)
+{
+    char *ret = getpass(tips);
+    while (strcmp(ret, "") == 0)
+    {
+        cout << "密码不允许为空！" << endl;
+        user_wait();
+        ret = getpass(tips);
+    }
+    return ret;
 }

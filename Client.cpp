@@ -7,14 +7,33 @@ Client::Client() //构造
     pipe_fd[2] = {0};
     memset(&acc, 0, sizeof(acc));
     isLogin = false;
+    onlinelist = new map<int, string>;
+    Querybox = new map<int, string>;
+    friendlist = new map<string, int>;
 }
+
 void Client::Connect() //连接服务器用函数
 {
     clear();
-    char ip[17] = {0};
-    int port;
-    input(ip, "请输入服务器IP：");
-    input(port, "请输入端口号：");
+    // char ip[17] = {0};
+    // int port;
+    // input(ip, "请输入服务器IP：");
+    // input(port, "请输入端口号：");
+
+    Json::Reader reader;
+    Json::Value root;
+    ifstream config("config.json");
+    if (!config)
+    {
+        char ip[17] = {0};
+        int port;
+        input(ip, "请输入服务器IP：");
+        input(port, "请输入端口号：");
+        newJson(ip, port);
+        config.open("config.json");
+    }
+    reader.parse(config, root);
+
     sock_fd = socket(AF_INET, SOCK_STREAM, 0); //socket部分开始
     if (sock_fd < 0)
     {
@@ -22,26 +41,28 @@ void Client::Connect() //连接服务器用函数
         user_wait();
         exit(-1);
     }
+
     struct sockaddr_in serv_addr;
     memset(&serv_addr, 0, sizeof(serv_addr));
     serv_addr.sin_family = AF_INET;
-    serv_addr.sin_addr.s_addr = inet_addr(ip);
-    serv_addr.sin_port = htons((unsigned)port);
+    serv_addr.sin_addr.s_addr = inet_addr(root["Client"]["ServerIP"].asCString());
+    serv_addr.sin_port = htons(root["Client"]["Port"].asUInt());
+
     for (int i = 0; i <= 3; i++)
     {
-        cout << "Connecting……" << endl;
+        cout << "连接中……" << endl;
         if (connect(sock_fd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0)
         {
-            cout << "Connecting error;" << endl;
+            cout << "连接失败，" << endl;
             if (i == 3)
             {
-                cout << "Please try to restart client!" << endl;
+                cout << "请尝试重新启动客户端，或检查配置文件是否正确填写!" << endl;
                 user_wait();
                 exit(-1);
             }
             else
             {
-                cout << "Try to reconnect;" << endl;
+                cout << "正在尝试第 " << i - 1 << "次重连……" << endl;
             }
         }
         else
@@ -49,22 +70,31 @@ void Client::Connect() //连接服务器用函数
             break;
         }
     }
+
+    if (pipe(listpipe_fd) < 0)
+    {
+        cout << "出现其他错误，程序中止！" << endl;
+        user_wait();
+        exit(-1);
+    }
     if (pipe(pipe_fd) < 0) //多进程时使用（建立管道描述符）
     {
-        cout << "Other error;" << endl;
+        cout << "出现其他错误，程序中止！" << endl;
         user_wait();
         exit(-1);
     }
     epoll_fd = epoll_create(1024);
     if (epoll_fd < 0)
     {
-        cout << "Other error;" << endl;
+        cout << "出现其他错误，程序中止！" << endl;
         user_wait();
         exit(-1);
     }
     addepollfd(epoll_fd, sock_fd);
     addepollfd(epoll_fd, pipe_fd[0]);
-    cout << "Connected." << endl;
+
+    cout << "已连接上服务器" << root["Client"]["ServerIP"].asCString() << ":" << root["Client"]["Port"].asUInt() << endl;
+    config.close();
     user_wait();
 }
 void *HeartBeat(void *pointer)
@@ -85,175 +115,120 @@ void *HeartBeat(void *pointer)
         cout << "重连失败，程序即将退出！" << endl;
         exit(-1);
     }
+    return nullptr;
 }
-
-// void Client::dealWithQuery(string command)
-// {
-//     if (strEqual(command, "makefriend "))
-//     {
-//         setMsg(msg, MAKEFRIEND, acc.account, nullptr, command.substr(sizeof("makefriend ") - 1).c_str());
-//     }
-//     else if (strEqual(command, "deletefriend "))
-//     {
-//         setMsg(msg, DELETEFRIEND, acc.account, nullptr, command.substr(sizeof("deletefriend ") - 1).c_str());
-//     }
-//     else if (strEqual(command, "accept "))
-//     {
-//         setMsg(msg, ACCEPT, acc.account, nullptr, command.substr(sizeof("accept ") - 1).c_str());
-//     }
-//     else if (strEqual(command, "refuse "))
-//     {
-//         setMsg(msg, REFUSE, acc.account, nullptr, command.substr(sizeof("refuse ") - 1).c_str());
-//     }
-//     else if (strEqual(command, "suki "))
-//     {
-//         setMsg(msg, SUKI, acc.account, nullptr, command.substr(sizeof("suki ") - 1).c_str());
-//     }
-//     else if (strEqual(command, "kirai "))
-//     {
-//         setMsg(msg, KIRAI, acc.account, nullptr, command.substr(sizeof("kirai ") - 1).c_str());
-//     }
-//     else if (strEqual(command, "queryfriendlist"))
-//     {
-//         queryFriendList();
-//         return;
-//     }
-//     else if (strEqual(command, "joingroup "))
-//     {
-//         setMsg(msg, JOINGROUP, acc.account, nullptr, command.substr(sizeof("joingroup ") - 1).c_str());
-//     }
-//     else if (strEqual(command, "creategroup "))
-//     {
-//         setMsg(msg, CREATEGROUP, acc.account, nullptr, command.substr(sizeof("creategroup ") - 1).c_str());
-//     }
-//     else
-//     {
-//         cout << "指令有误，请检查指令格式！" << endl;
-//         return;
-//     }
-//     if (sendMsg(msg, sock_fd) < 0)
-//     {
-//         cout << "请求失败，请检查网络连接！" << endl;
-//     }
-//     /*指令定义解释，可按自己需要做出改变
-//     cout << msg.type << endl; //消息类型（宏定义）
-//     cout << msg.fromUser << endl; //来自用户 （默认为acc.account，即目前登录用户名称）
-//     cout << msg.toUser << endl; //发送到用户（当信息为指令类型时该项缺省）
-//     cout << msg.content << endl; //指令目标用户 （即/"command" [target]中的target）
-//     */
-// }
 
 void Client::mainMenu()
 {
     string command;
-    string main_menu[] = {"发起私聊", // 1
-                          "发起群聊", // 2
-                          "添加好友", // 3
-                          "删除好友",  // 4
-                          "获取请求", // 5
-                          "设置好友为特别关心",//6
-                          "设置好友为黑名单好友",//7
-                          "请求好友列表",//8
-                          "接受好友请求",//9
-                          "拒绝好友请求",//10
+    string main_menu[] = {"发起私聊",             // 1
+                          "发起群聊",             // 2
+                          "添加好友",             // 3
+                          "删除好友",             // 4
+                          "获取请求",             // 5
+                          "设置好友为特别关心",   //6
+                          "设置好友为黑名单好友", //7
+                          "请求好友列表",         //8
+                          "接受好友请求",         //9
+                          "拒绝好友请求",         //10
                           "返回"};
     switch (menu(main_menu, 11)) //menu()的用法请查看注释
     {
-        case 1:
+    case 1:
+    {
+        Privatetalk();
+        break;
+    }
+    case 2:
+    {
+        Grouptalk();
+        break;
+    }
+    case 3:
+    {
+        makeFriend();
+        break;
+    }
+    case 4:
+    {
+        deleteFriend();
+        break;
+    }
+    case 5:
+    {
+        getQueryBox(false); //获取请求列表
+        map<int, string>::iterator it;
+        for (it = Querybox->begin(); it != Querybox->end(); it++)
         {
-            Privatetalk();
-            break;
+            cout << "id = " << it->first << endl;
+            cout << "内容：" << it->second << endl;
+            cout << endl;
+        }                         //遍历已接受到的请求列表
+        if (Querybox->size() == 0) //接收到的请求列表为空
+        {
+            cout << "请求列表为空！" << endl;
+            user_wait();
         }
-        case 2:
+        else
         {
-            Grouptalk();
-            break;
-        }
-        case 3:
-        {
-            makeFriend();
-            break;
-        }
-        case 4:
-        {
-            deleteFriend();
-            break;
-        }
-        case 5:
-        {
-            getQueryBox(false); //获取请求列表
-            map<int, string>::iterator it;
-            for (it = Querybox.begin(); it != Querybox.end(); it++)
+            char choice[10];
+            do
             {
-                cout << "id = " << it->first << endl;
-                cout << "内容：" << it->second << endl;
-                cout << endl;
-            } //遍历已接受到的请求列表
-            if (Querybox.size() == 0) //接收到的请求列表为空
+                input(choice, "请输入事件id>");
+            } while (Querybox->count(atoi(choice)) == 0);
+            cout << "您已选择id:" << choice << "，请输入（y/n）以同意/拒绝该事件。" << endl;
+            while (char c = getch())
             {
-                cout << "请求列表为空！" << endl;
-                user_wait();
-            }
-            else
-            {
-                char choice[10];
-                do
+                if (c == 'y' || c == 'Y')
                 {
-                    input(choice, "请输入事件id>");
-                } while (Querybox.count(atoi(choice)) == 0);
-                cout << "您已选择id:" << choice << "，请输入（y/n）以同意/拒绝该事件。" << endl;
-                while (char c = getch())
+                    cout << "您已同意该事件。" << endl;
+                    setMsg(msg, ACCEPT, acc.account, nullptr, choice);
+                    sendMsg(msg, pipe_fd[1]); //我们应严格遵守所有消息都有父进程发的原则
+                    break;
+                }
+                else if (c == 'n' || c == 'N')
                 {
-                    if (c == 'y' || c == 'Y')
-                    {
-                        cout << "您已同意该事件。" << endl;
-                        setMsg(msg, ACCEPT, acc.account, nullptr, choice);
-                        sendMsg(msg, pipe_fd[1]); //我们应严格遵守所有消息都有父进程发的原则
-                        break;
-                    }
-                    else if (c == 'n' || c == 'N')
-                    {
-                        cout << "您已拒绝该事件。" << endl;
-                        setMsg(msg, REFUSE, acc.account, nullptr, choice);
-                        sendMsg(msg, pipe_fd[1]);
-                        break;
-                    }
-                    else
-                    {
-                        cout << "输入有误，请重新输入！" << endl;
-                    }
+                    cout << "您已拒绝该事件。" << endl;
+                    setMsg(msg, REFUSE, acc.account, nullptr, choice);
+                    sendMsg(msg, pipe_fd[1]);
+                    break;
+                }
+                else
+                {
+                    cout << "输入有误，请重新输入！" << endl;
                 }
             }
         }
-        case 6:
-        {
-            setSuki();
-            break;
-        }
-        case 7:
-        {
-            setKirai();
-            break;
-        }
-        case 8:
-        {
-            queryFriendList(true);
-            break;
-        }
-        case 9:
-        {
-            setMsg(msg, ACCEPT, acc.account, nullptr, command.substr(sizeof("accept ") - 1).c_str());
-            break;
-        }
-        case 10:
-        {
-            setMsg(msg, REFUSE, acc.account, nullptr, command.substr(sizeof("refuse ") - 1).c_str());
-            break;
-        }
-        default:
-        {
-            break;
-        }
+    }
+    case 6:
+    {
+        setSuki();
+        break;
+    }
+    case 7:
+    {
+        setKirai();
+        break;
+    }
+    case 8:
+    {
+        queryFriendList(true);
+        break;
+    }
+    case 9:
+    {
+        setMsg(msg, ACCEPT, acc.account, nullptr, command.substr(sizeof("accept ") - 1).c_str());
+        break;
+    }
+    case 10:
+    {
+        setMsg(msg, REFUSE, acc.account, nullptr, command.substr(sizeof("refuse ") - 1).c_str());
+        break;
+    }
+    default:
+    {
+        break;
+    }
     }
 }
 

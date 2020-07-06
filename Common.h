@@ -16,10 +16,11 @@
 #include <mysql/mysql.h>
 #include <map>
 #include <pthread.h>
-//#include<ncurses.h>  //用户界面库
 #include <termio.h>
 
-#define LOGINMODE 0 //默认关闭登录模式
+#include "json/json.h"
+
+#define LOGINMODE 1 //默认关闭登录模式
 
 #define ADMIN "Admin"
 
@@ -103,3 +104,7 @@ int getch();
 int menu(string list[], int size); //这个
 
 void input(string &str, const char *tips = nullptr); //输入框
+
+void newJson(char *IP, int port);
+
+char *Getpass(const char *tips);

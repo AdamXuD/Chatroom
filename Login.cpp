@@ -1,6 +1,8 @@
 #include "Client.h"
 #include "Server.h"
 
+extern char content[5120];
+extern char query[10240];
 
 /*客户端部分*/
 void Client::Login() //表登录接口
@@ -17,8 +19,8 @@ void Client::Login() //表登录接口
             clear();
             char password[32];
             input(this->acc.account, "请输入用户名：");
-            strcpy(password, getpass("请输入密码："));
-            strcpy(this->acc.pwd, crypt(password, password));
+            strcpy(password, Getpass("请输入密码："));
+            strcpy(this->acc.pwd, crypt(password, "pa"));
             Login(this->acc);
             break;
         case 2:
@@ -80,11 +82,11 @@ void Client::Signup()
     input(acc.account, "请输入昵称：");
     while (1)
     {
-        strcpy(password1, getpass("请输入密码："));
-        strcpy(password2, getpass("请再次输入密码："));
+        strcpy(password1, Getpass("请输入密码："));
+        strcpy(password2, Getpass("请再次输入密码："));
         if (strcmp(password1, password2) == 0)
         {
-            strcpy(acc.pwd, crypt(password1, password1));
+            strcpy(acc.pwd, crypt(password1, "pa"));
             break;
         }
         else
@@ -164,23 +166,32 @@ void Client::fileLogin()
 /*服务器部分*/
 void Server::addonlinelist(int clnt_fd, char *acc)
 {
-    if (onlinelist.count(clnt_fd) == 0)
+    map<int, pair<string, int>>::iterator it;
+    for (it = onlinelist->begin(); it != onlinelist->end(); it++)
+    {
+        if (strEqual(it->second.first, acc))
+        {
+            setMsg(send_msg, FORCE_EXIT, ADMIN, it->second.first.c_str(), "您的账号已在别处登录！");
+            sendMsg(send_msg, it->first);
+            onlinelist->erase(it->first);
+        }
+    }
+    if (onlinelist->count(clnt_fd) == 0)
     {
         if (acc != nullptr)
         {
-            onlinelist[clnt_fd].first = acc;
+            (*onlinelist)[clnt_fd].first = acc;
         }
-        onlinelist[clnt_fd].second = 0;
+        (*onlinelist)[clnt_fd].second = 0;
     }
     else
     {
-        onlinelist.erase(clnt_fd);
+        onlinelist->erase(clnt_fd);
         if (acc != nullptr)
         {
-
-            onlinelist[clnt_fd].first = acc;
+            (*onlinelist)[clnt_fd].first = acc;
         }
-        onlinelist[clnt_fd].second = 0;
+        (*onlinelist)[clnt_fd].second = 0;
     }
 }
 void Server::Onlineremind(int call)
@@ -190,7 +201,6 @@ void Server::Onlineremind(int call)
 }
 void Server::Login(int call) //登录处理函数
 {
-    char query[5120];
     cout << "A connector is trying to login." << endl;
     strcpy(acc.account, recv_msg.fromUser);
     strcpy(acc.pwd, recv_msg.toUser);
@@ -208,7 +218,7 @@ void Server::Login(int call) //登录处理函数
             sendMsg(send_msg, call); //服务端反馈
             cout << "Login success." << endl;
             addonlinelist(call, acc.account);
-            cout << "Now there are " << onlinelist.size() << " user(s) online." << endl;
+            cout << "Now there are " << onlinelist->size() << " user(s) online." << endl;
             Onlineremind(call);
         }
         else
@@ -227,7 +237,6 @@ void Server::Login(int call) //登录处理函数
 }
 void Server::Signup(int call)
 {
-    char query[5120];
     cout << "A connector is trying to signup." << endl;
     strcpy(acc.account, recv_msg.fromUser);
     strcpy(acc.pwd, recv_msg.toUser);
@@ -237,6 +246,8 @@ void Server::Signup(int call)
         setMsg(send_msg, SUCCESS, nullptr, nullptr, nullptr);
         sendMsg(send_msg, call); //服务端反馈
         cout << "Signup success." << endl;
+        createFriendList();
+        createQuerybox();
     }
     else
     {
