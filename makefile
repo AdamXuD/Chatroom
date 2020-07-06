@@ -1,7 +1,12 @@
+OBJ=$(wildcard ./*cpp)
+APP=Chatroom
 CC = g++
 CFLAGS = -std=c++11
 LIB = -lcrypt -lmysqlclient -L /usr/local/mysql/lib/*.a -lpthread
- 
-all: main.cpp Client.cpp Server.cpp Common.cpp Login.cpp Friendlist.cpp Talk.cpp
-	$(CC) $(CFLAGS) main.cpp Client.cpp Server.cpp Common.cpp Login.cpp Friendlist.cpp Talk.cpp -o Chatroom $(LIB)
 
+$(APP): $(OBJ)
+        $(CC) $(CFLAGS) $^ -o $@ $(LIB)
+.PHONY:clean
+clean:
+        rm -f $(APP)
+#终端输入 make clean 可以删除产生的可执行文件
