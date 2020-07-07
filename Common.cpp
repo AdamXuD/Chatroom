@@ -272,3 +272,54 @@ char *Getpass(const char *tips)
     }
     return ret;
 }
+
+int mygetline(string &str) //支持功能键的
+{
+    while (char c = getch())
+    {
+
+        if (c == 27) //Esc退出实现
+        {
+            return EOF;
+            break;
+        }
+        else if (c == 13) //回车实现
+        {
+            cout << endl;
+            return str.size();
+            break;
+        }
+        else if (c == 127) //退格实现
+        {
+            if (str.size() > 0)
+            {
+                cout << "\b";
+                cout << " ";
+                cout << "\b";
+                str.pop_back();
+            }
+        }
+        else
+        {
+            cout << c;
+            str.push_back(c);
+        }
+    }
+}
+
+char *getTime()
+{
+    time_t nowtime;
+    time(&nowtime);
+    nowtime = time(NULL);
+    struct tm *t_set = localtime(&nowtime);
+    static char str[64];
+    sprintf(str, "%d-%d-%d %d:%d:%d",
+            t_set->tm_year + 1900,
+            t_set->tm_mon + 1,
+            t_set->tm_mday,
+            t_set->tm_hour,
+            t_set->tm_min,
+            t_set->tm_sec);
+    return str;
+}

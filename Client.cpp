@@ -7,7 +7,6 @@ Client::Client() //构造
     pipe_fd[2] = {0};
     memset(&acc, 0, sizeof(acc));
     isLogin = false;
-    onlinelist = new map<int, string>;
     Querybox = new map<int, string>;
     friendlist = new map<string, int>;
 }
@@ -118,6 +117,53 @@ void *HeartBeat(void *pointer)
     return nullptr;
 }
 
+void Client::dealWithQuery()
+{
+    getQueryBox(false);
+    map<int, string>::iterator it;
+    for (it = Querybox->begin(); it != Querybox->end(); it++)
+    {
+        cout << "id = " << it->first << endl;
+        cout << "内容：" << it->second << endl;
+        cout << endl;
+    }
+    if (Querybox->size() == 0)
+    {
+        cout << "请求列表为空！" << endl;
+        user_wait();
+    }
+    else
+    {
+        char choice[10];
+        do
+        {
+            input(choice, "请输入事件id>");
+        } while (Querybox->count(atoi(choice)) == 0);
+        cout << "您已选择id:" << choice << "，请输入（y/n）以同意/拒绝该事件。" << endl;
+        while (char c = getch())
+        {
+            if (c == 'y' || c == 'Y')
+            {
+                cout << "您已同意该事件。" << endl;
+                setMsg(msg, ACCEPT, acc.account, nullptr, choice);
+                sendMsg(msg, pipe_fd[1]);
+                break;
+            }
+            else if (c == 'n' || c == 'N')
+            {
+                cout << "您已拒绝该事件。" << endl;
+                setMsg(msg, REFUSE, acc.account, nullptr, choice);
+                sendMsg(msg, pipe_fd[1]);
+                break;
+            }
+            else
+            {
+                cout << "输入有误，请重新输入！" << endl;
+            }
+        }
+    }
+}
+
 void Client::mainMenu()
 {
     string command;
@@ -126,22 +172,32 @@ void Client::mainMenu()
                           "添加好友",             // 3
                           "删除好友",             // 4
                           "获取请求",             // 5
-                          "设置好友为特别关心",   //6
-                          "设置好友为黑名单好友", //7
-                          "请求好友列表",         //8
-                          "接受好友请求",         //9
-                          "拒绝好友请求",         //10
-                          "返回"};
-    switch (menu(main_menu, 11)) //menu()的用法请查看注释
+                          "处理请求",             // 6
+                          "设置好友为特别关心",   //7
+                          "设置好友为黑名单好友", //8
+                          "请求好友列表",         //9
+                          "获取在线好友列表",     //10
+                          "创建群组",             //11
+                          "加入群组",             //12
+                          "返回"};                //13
+    switch (menu(main_menu, 13))                  //menu()的用法请查看注释
     {
     case 1:
     {
-        Privatetalk();
+        command = friendlistMenu(true);
+        if (strEqual(command, "__nullstr") == false)
+        {
+            Privatetalk(command);
+        }
         break;
     }
     case 2:
     {
-        Grouptalk();
+        command = friendlistMenu(false);
+        if (strEqual(command, "__nullstr") == false)
+        {
+            Grouptalk(command);
+        }
         break;
     }
     case 3:
@@ -156,73 +212,42 @@ void Client::mainMenu()
     }
     case 5:
     {
-        getQueryBox(false); //获取请求列表
-        map<int, string>::iterator it;
-        for (it = Querybox->begin(); it != Querybox->end(); it++)
-        {
-            cout << "id = " << it->first << endl;
-            cout << "内容：" << it->second << endl;
-            cout << endl;
-        }                         //遍历已接受到的请求列表
-        if (Querybox->size() == 0) //接收到的请求列表为空
-        {
-            cout << "请求列表为空！" << endl;
-            user_wait();
-        }
-        else
-        {
-            char choice[10];
-            do
-            {
-                input(choice, "请输入事件id>");
-            } while (Querybox->count(atoi(choice)) == 0);
-            cout << "您已选择id:" << choice << "，请输入（y/n）以同意/拒绝该事件。" << endl;
-            while (char c = getch())
-            {
-                if (c == 'y' || c == 'Y')
-                {
-                    cout << "您已同意该事件。" << endl;
-                    setMsg(msg, ACCEPT, acc.account, nullptr, choice);
-                    sendMsg(msg, pipe_fd[1]); //我们应严格遵守所有消息都有父进程发的原则
-                    break;
-                }
-                else if (c == 'n' || c == 'N')
-                {
-                    cout << "您已拒绝该事件。" << endl;
-                    setMsg(msg, REFUSE, acc.account, nullptr, choice);
-                    sendMsg(msg, pipe_fd[1]);
-                    break;
-                }
-                else
-                {
-                    cout << "输入有误，请重新输入！" << endl;
-                }
-            }
-        }
+        getQueryBox(true); //获取请求列表
+        break;
     }
     case 6:
     {
-        setSuki();
+        dealWithQuery(); //处理请求列表
         break;
     }
     case 7:
     {
-        setKirai();
+        setSuki();
         break;
     }
     case 8:
     {
-        queryFriendList(true);
+        setKirai();
         break;
     }
     case 9:
     {
-        setMsg(msg, ACCEPT, acc.account, nullptr, command.substr(sizeof("accept ") - 1).c_str());
+        queryFriendList(true);
         break;
     }
     case 10:
     {
-        setMsg(msg, REFUSE, acc.account, nullptr, command.substr(sizeof("refuse ") - 1).c_str());
+        getOnlineFriends();
+        break;
+    }
+    case 11:
+    {
+        createGroupTalk();
+        break;
+    }
+    case 12:
+    {
+        joinGroup();
         break;
     }
     default:
@@ -230,6 +255,7 @@ void Client::mainMenu()
         break;
     }
     }
+    cout << "全服广播(请直接在下方输入消息，enter键发送，/menu唤出菜单)>" << endl;
 }
 
 void Client::dealwithmsg(char *Target)
@@ -269,17 +295,14 @@ void Client::dealwithmsg(char *Target)
     }
     default:
     {
-        return;
+        cout << "unknown massage:" << endl;
+        cout << "Type:" << msg.type << endl;
+        cout << "From:" << msg.fromUser << endl;
+        cout << "To:" << msg.toUser << endl;
+        cout << "Content:" << msg.content << endl;
     }
     }
-    if (strEqual(msg.fromUser, Target) || strEqual(msg.fromUser, ADMIN))
-    {
-        cout << "\033[33m>" << msg.fromUser << " 说：" << msg.content << "\033[0m" << endl; //当指定了聊天对象时 聊天对象消息高亮
-    }
-    else
-    {
-        cout << msg.fromUser << " 说：" << msg.content << endl;
-    }
+    cout << msg.fromUser << " 说：" << msg.content << endl;
 }
 
 void Client::Start() //客户端入口
@@ -340,7 +363,7 @@ void Client::Start() //客户端入口
         char Target[32] = {0}; //存储聊天对象
         while (isLogin)
         {
-            int epoll_events_count = epoll_wait(epoll_fd, events, 2, -1);
+            int epoll_events_count = epoll_wait(epoll_fd, events, 10, -1);
             for (int i = 0; i < epoll_events_count; i++)
             {
                 if (events[i].data.fd == sock_fd) //epoll响应来自服务器标识符时

@@ -10,10 +10,8 @@ void Client::Login() //表登录接口
     while (isLogin == false)
     {
         clear();
-        cout << "是否拥有聊天室账户？" << endl;
-        cout << "1.我已拥有账户，希望登录。" << endl;
-        cout << "2.我还没有聊天室账户，希望注册。" << endl;
-        switch (input())
+        string list[2] = {"我已拥有账户，希望登录。", "我还没有聊天室账户，希望注册。"};
+        switch (menu(list, 2, "是否拥有聊天室账户？"))
         {
         case 1:
             clear();
@@ -129,10 +127,8 @@ void Client::fileLogin()
         while (isLogin == false)
         {
             clear();
-            cout << "本地已有账户登录信息，是否登录？" << endl;
-            cout << "1.是" << endl;
-            cout << "2.否" << endl;
-            switch (input())
+            string list[2] = {"1.是", "2.否"};
+            switch (menu(list, 2, "本地已有账户登录信息，是否登录？"))
             {
             case 1:
             {

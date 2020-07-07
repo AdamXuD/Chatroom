@@ -6,17 +6,71 @@ void Client::makeFriend() //添加好友
 {
     string command;
     input(command, "请输入需要添加的好友昵称>");
-    setMsg(msg, MAKEFRIEND, acc.account, nullptr, command.substr(sizeof("makefriend ") - 1).c_str());
+    setMsg(msg, MAKEFRIEND, acc.account, nullptr, command.c_str());
     sendMsg(msg, pipe_fd[1]);
     cout << "请求已发送！" << endl;
 }
 void Client::deleteFriend() //删除好友
 {
-    string command;
-    input(command, "请输入需要删除的好友昵称>");
-    setMsg(msg, DELETEFRIEND, acc.account, nullptr, command.c_str());
-    sendMsg(msg, pipe_fd[1]);
-    cout << "请求已发送！" << endl;
+    string command = friendlistMenu(true);
+    if (strEqual(command, "__nullstr") == false)
+    {
+        cout << "请输入（y/n）以同意/拒绝该事件。" << endl;
+        while (char c = getch())
+        {
+            if (c == 'y' || c == 'Y')
+            {
+                cout << "您已同意该事件。" << endl;
+                setMsg(msg, DELETEFRIEND, acc.account, nullptr, command.c_str());
+                sendMsg(msg, pipe_fd[1]);
+                break;
+            }
+            else if (c == 'n' || c == 'N')
+            {
+                cout << "操作已取消。" << endl;
+                break;
+            }
+            else
+            {
+                cout << "输入有误，请重新输入！" << endl;
+            }
+        }
+    }
+}
+
+string Client::friendlistMenu(bool isFriend) //1为提取群组 0为提取好友
+{
+    queryFriendList(false);
+    string tmp[friendlist->size()];
+    if (friendlist->size() == 0)
+    {
+        cout << "好友列表为空，请先尝试刷新或添加好友！" << endl;
+        user_wait();
+        return "__nullstr";
+    }
+    cout << "请用上下键选择目标>" << endl;
+    map<string, int>::iterator it;
+    int i = 0;
+    for (it = friendlist->begin(); it != friendlist->end(); it++)
+    {
+        if (isFriend)
+        {
+            if (it->second == 0)
+            {
+                tmp[i] = it->first;
+                i++;
+            }
+        }
+        else
+        {
+            if (it->second == 1)
+            {
+                tmp[i] = it->first;
+                i++;
+            }
+        }
+    }
+    return tmp[menu(tmp, i) - 1];
 }
 void Client::queryFriendList(bool show) //请求好友列表
 {
@@ -88,20 +142,53 @@ void Client::queryFriendList(bool show) //请求好友列表
         fl.close();
     }
 }
+
+void Client::getOnlineFriends()
+{
+    cout << "正在请求在线列表..." << endl;
+    sleep(1);
+    setMsg(msg, ONLINELIST, acc.account, nullptr, nullptr);
+    if (sendMsg(msg, pipe_fd[1]) < 0)
+    {
+        cout << "请求失败，请检查网络连接！" << endl;
+    }
+    else
+    {
+        cout << "在线好友如下：" << endl;
+        while (1)
+        {
+            recvMsg(listpipe_fd[0], msg, true);
+            if (msg.type == LIST)
+            {
+                cout << msg.fromUser << endl;
+            }
+            else if (msg.type == EOF)
+            {
+                break;
+            }
+        }
+        cout << "请求完毕！" << endl;
+    }
+}
+
 void Client::setSuki() //设为特别关心
 {
-    string command;
-    input(command, "请输入特别关心的好友昵称>");
-    setMsg(msg, SUKI, acc.account, nullptr, command.substr(sizeof("suki ") - 1).c_str());
-    sendMsg(msg, pipe_fd[1]);
+    string command = friendlistMenu(true);
+    if (strEqual(command, "__nullstr") == false)
+    {
+        setMsg(msg, SUKI, acc.account, nullptr, command.c_str());
+        sendMsg(msg, pipe_fd[1]);
+    }
     cout << "请求已发送！" << endl;
 }
 void Client::setKirai() //拉黑名单
 {
-    string command;
-    input(command, "请输入拉入黑名单的好友昵称>");
-    setMsg(msg, KIRAI, acc.account, nullptr, command.substr(sizeof("kirai ") - 1).c_str());
-    sendMsg(msg, pipe_fd[1]);
+    string command = friendlistMenu(true);
+    if (strEqual(command, "__nullstr") == false)
+    {
+        setMsg(msg, SUKI, acc.account, nullptr, command.c_str());
+        sendMsg(msg, pipe_fd[1]);
+    }
     cout << "请求已发送！" << endl;
 }
 void Client::getQueryBox(bool show) //show表示是否回显内容
@@ -243,7 +330,7 @@ void Server::dealwithQuery()
             }
             else if (strEqual(type, "GROUP"))
             {
-                // addGroupMember(target, fromUser);
+                addGroupMember(target, fromUser);
                 sprintf(query, "delete from %s_querybox where id = %s", recv_msg.fromUser, recv_msg.content);
                 Mysql_query(&mysql, query);
             }
@@ -360,4 +447,45 @@ void Server::sendFriendList(int call) //发送好友列表（登录后马上调�
     setMsg(send_msg, EOF, nullptr, nullptr, "EOF");
     sendMsg(send_msg, call);
 }
+
+void Server::sendOnlineFriends(int call)
+{
+
+    char query[1024];
+    string friendlist[1536];
+    int i = 0;
+    sprintf(query, "select account, flag from %s_friendlist", recv_msg.fromUser);
+    Mysql_query(&mysql, query);
+    MYSQL_RES *res;
+    MYSQL_ROW row;
+    res = mysql_store_result(&mysql);
+    while (row = mysql_fetch_row(res))
+    {
+        if (row != NULL)
+        {
+            if (strEqual(row[1], "0"))
+            {
+                friendlist[i] = row[0];
+                i++;
+            }
+        }
+    }
+    map<int, pair<string, int>>::iterator it;
+    for (it = onlinelist->begin(); it != onlinelist->end(); it++)
+    {
+        for (int j = 0; j < i; j++)
+        {
+            if (strEqual(it->second.first, friendlist[j].c_str()))
+            {
+                usleep(30000);
+                setMsg(send_msg, LIST, it->second.first.c_str(), nullptr, nullptr);
+                sendMsg(send_msg, call);
+            }
+        }
+    }
+    usleep(30000);
+    setMsg(send_msg, EOF, nullptr, nullptr, "EOF");
+    sendMsg(send_msg, call);
+}
+
 /*服务端部分*/

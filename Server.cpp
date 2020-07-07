@@ -136,10 +136,6 @@ void Server::dealWithMsg(int call)
         break;
     }
     case SUKI:
-    {
-        setFriendFlag();
-        break;
-    }
     case KIRAI:
     {
         setFriendFlag();
@@ -152,26 +148,39 @@ void Server::dealWithMsg(int call)
     }
     case CREATEGROUP:
     {
+        createGroupTalk();
+        break;
     }
     case JOINGROUP:
     {
+        joinGroupQuery();
+        break;
     }
     case SETADMIN:
-    {
-    }
+        setGroupAdmin();
+        break;
     case LEAVEGROUP:
-    {
-    }
+        leaveGroup();
+        break;
     case KICKOFFMEMBER:
-    {
-    }
+        deleteGroupMember();
+        break;
     case QUERYMEMBER:
-    {
-    }
+        SendGroupMember(call);
+        break;
     case QUERYBOX:
     {
         sendQueryBox(call);
         break;
+    }
+    case ONLINELIST:
+    {
+        sendOnlineFriends(call);
+        break;
+    }
+    case HISTORY:
+    {
+
     }
     case COMMAND: //如果收到命令类消息
     {

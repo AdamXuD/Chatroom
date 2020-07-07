@@ -12,7 +12,7 @@ public:
     void Signup(); //注册
     void fileLogin(); //本地凭据登录
     static void *sendHeartBeats(void *pointer); //定时发送心跳包
-    void dealWithQuery(string command);
+    void dealWithQuery();
     void mainMenu();
 
     void Start();
@@ -25,19 +25,25 @@ public:
     void getQueryBox(bool show);        //获取请求列表
     void setSuki();           //设为特别关心
     void setKirai();          //拉黑名单
+    string friendlistMenu(bool isFriend); //好友列表菜单
+    void getOnlineFriends();
+
     /*好友列表部分*/
 
     /*群聊相关权限部分*/
+    void Grouptalk(string command); //处理用户群聊请求
+
+    void groupMenu(string toGroup);
+    void queryGroupMember(const char *Group, bool show);
     void createGroupTalk();      //创建群聊
     void setGroupAdmin();        //设置管理员
     void joinGroup();            //加入群聊
     void leaveGroup();           //主动离开群聊
     void deleteGroupMember();    //踢人
-    void Grouptalk();            //处理用户群聊请求
     /*群聊与相关权限部分*/
     
     /*私聊部分*/
-    void Privatetalk(); //处理用户私聊请求
+    void Privatetalk(string command); //处理用户私聊请求
     /*私聊部分*/
     ~Client();
 
@@ -50,7 +56,7 @@ private:
     int pid;                     //多进程时fork()返回进程号时用得到
     int epoll_fd;                //epoll二叉树根的句柄，真的玄妙
     bool isLogin;                //登陆状态
-    map<int, string> *onlinelist; //用map记录在线列表（包含名称和）（一一对应）
+    map<string, int> memberlist;
     map<int, string> *Querybox;   //客户端使用该容器临时存储请求id和请求内容
     map<string, int> *friendlist; //用list类存储好友列表
 
