@@ -43,11 +43,8 @@ void Client::Login(Account acc) //重载里登录接口
         if (msg.type == SUCCESS)
         {
             isLogin = true;
-            cout << "登录成功！" << endl;
-            cout << "是否在本地保存登陆凭据？" << endl;
-            cout << "1.是" << endl;
-            cout << "2.否" << endl;
-            switch (input())
+            string list[2] = {"是", "否"};
+            switch (menu(list, 2, "登录成功！\n是否在本地保存登陆凭据？"))
             {
             case 1:
             {
@@ -65,13 +62,14 @@ void Client::Login(Account acc) //重载里登录接口
         else
         {
             cout << "登录失败，请检查账号或密码是否正确！" << endl;
+            user_wait();
         }
     }
     else
     {
         cout << "请求失败，请检查网络设置！" << endl;
+        user_wait();
     }
-    user_wait();
     clear();
 }
 void Client::Signup()

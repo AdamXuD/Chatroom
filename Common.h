@@ -101,7 +101,7 @@ int input();
 int Mysql_query(MYSQL *mysql, const char *q);
 
 int getch();
-int menu(string list[], int size); //这个
+int menu(string list[], int size, char *tips = nullptr); //这个
 
 void input(string &str, const char *tips = nullptr); //输入框
 

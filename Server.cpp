@@ -53,7 +53,7 @@ void Server::Prepare()
     }
     else
     {
-        cout << "Server is LISTENING on" << root["Server"]["ListenIP"].asCString() << ":" << root["Server"]["Port"].asUInt() << endl;
+        cout << "Server is LISTENING on " << root["Server"]["ListenIP"].asCString() << ":" << root["Server"]["Port"].asUInt() << endl;
     }
 
     epoll_fd = epoll_create(4096);
@@ -86,7 +86,6 @@ void Server::Prepare()
     }
     /*数据库初始化部分结束*/
     config.close();
-    user_wait();
 }
 void Server::BroadcastMsg(int call, Msg &msg)
 {

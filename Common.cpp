@@ -175,12 +175,16 @@ int getch()
 #endif
 }
 
-int menu(string list[], int size) //第一个参数是菜单列表，第二个参数是菜单项数量
+int menu(string list[], int size, char *tips) //第一个参数是菜单列表，第二个参数是菜单项数量
 {
     int select = 1;
     while (1)
     {
         clear();
+        if(tips != nullptr)
+        {
+            cout << tips << endl;
+        }
         for (int i = 0; i < size; i++)
         {
             if (i == select - 1)
