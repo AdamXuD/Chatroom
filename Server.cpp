@@ -11,18 +11,18 @@ void Server::Prepare()
     clear();
     cout << "Server is starting..." << endl;
 
-    Json::Reader reader;
-    Json::Value root;
     ifstream config("config.json");
 
     if (!config)
     {
-        cout << "Didn't find config.json. A new config.json has been created." << endl;
-        cout << "Please finish the information in config.json first." << endl;
-        newJson("null", 0);
+        cout << "Didn't find config.json." << endl;
+        cout << "Please run ./Chatroom --init first." << endl;
         user_wait();
         exit(-1);
     }
+
+    Json::Reader reader;
+    Json::Value root;
     reader.parse(config, root);
 
     sock_fd = socket(AF_INET, SOCK_STREAM, 0); //socket部分开始
@@ -180,7 +180,6 @@ void Server::dealWithMsg(int call)
     }
     case HISTORY:
     {
-
     }
     case COMMAND: //如果收到命令类消息
     {

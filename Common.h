@@ -101,14 +101,16 @@ int input();
 int Mysql_query(MYSQL *mysql, const char *q);
 
 int getch();
-int menu(string list[], int size, char *tips = nullptr); //这个
+int menu(string list[], int size, const char *tips = nullptr); //这个
 
 void input(string &str, const char *tips = nullptr); //输入框
 
-void newJson(char *IP, int port);
+void newJson(const char *IP, int port);
 
 char *Getpass(const char *tips);
 
 int mygetline(string &str); //支持功能键的
 
 char *getTime();
+
+void serverInitialization();

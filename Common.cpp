@@ -174,13 +174,13 @@ int getch()
 #endif
 }
 
-int menu(string list[], int size, char *tips) //第一个参数是菜单列表，第二个参数是菜单项数量
+int menu(string list[], int size, const char *tips) //第一个参数是菜单列表，第二个参数是菜单项数量
 {
     int select = 1;
     while (1)
     {
         clear();
-        if(tips != nullptr)
+        if (tips != nullptr)
         {
             cout << tips << endl;
         }
@@ -234,7 +234,7 @@ void input(string &str, const char *tips) //输入框
     getline(cin, str, '\n');
 }
 
-void newJson(char *IP, int port)
+void newJson(const char *IP, int port)
 {
     ofstream config("config.json");
     Json::Value root;
@@ -321,4 +321,98 @@ char *getTime()
             t_set->tm_min,
             t_set->tm_sec);
     return str;
+}
+
+void serverInitialization()
+{
+    ifstream tmp("config.json");
+    if (!tmp)
+    {
+        cout << "Didn't find config.json. A new config.json has been created." << endl;
+        cout << "Please finish the information in config.json first." << endl;
+        cout << "After you finish the config, please input `confirm` to go ahead." << endl;
+        newJson("null", 0);
+    }
+    else
+    {
+        cout << "Find a config.json here." << endl;
+        cout << "If you want to initialize by it, please input `confirm` to go ahead." << endl;
+    }
+
+    string str;
+    getline(cin, str);
+    while (true)
+    {
+        if (strEqual(str, "confirm"))
+            break;
+        else
+            cout << "After you finish the config, please input `confirm` to go ahead." << endl;
+    }
+
+    Json::Value root;
+    Json::Reader reader;
+    ifstream config("config.json");
+    reader.parse(config, root);
+
+    MYSQL mysql;
+    mysql_init(&mysql);
+    if (!mysql_real_connect(&mysql, root["Server"]["ListenIP"].asCString(),
+                            root["Server"]["DatabaseAccount"].asCString(),
+                            root["Server"]["DatabasePassword"].asCString(),
+                            root["Server"]["DatabaseName"].asCString(),
+                            root["Server"]["DatabasePort"].asUInt(), NULL, 0))
+    {
+        cout << "Failed to connect to database: Error:" << mysql_error(&mysql) << endl;
+        user_wait();
+        config.close();
+        exit(-1);
+    }
+    else
+    {
+        cout << "Success to connect database" << endl;
+    }
+
+    cout << "Creating `userinfo` table..." << endl;
+    sleep(2);
+    if (Mysql_query(&mysql, "CREATE TABLE `userinfo` ( `account` varchar(32) NOT NULL DEFAULT '', `pwd` varchar(32) DEFAULT NULL, PRIMARY KEY (`account`) ) ENGINE=InnoDB DEFAULT CHARSET=utf8;") != 0)
+    {
+        user_wait();
+        exit(-1);
+    }
+
+    cout << "Creating `groupinfo` table..." << endl;
+    sleep(2);
+    if (Mysql_query(&mysql, "CREATE TABLE `groupinfo` ( `group` varchar(32) NOT NULL DEFAULT '', PRIMARY KEY (`group`)) ENGINE=InnoDB DEFAULT CHARSET=utf8;") != 0)
+    {
+        user_wait();
+        exit(-1);
+    }
+
+    cout << "Creating `friendlist` template table..." << endl;
+    sleep(2);
+    if (Mysql_query(&mysql, "CREATE TABLE `friendlist` ( `account` varchar(32) NOT NULL DEFAULT '', `flag` enum('0','1','2','3') NOT NULL DEFAULT '0', KEY `account` (`account`), CONSTRAINT `friendlist_ibfk_1` FOREIGN KEY (`account`) REFERENCES `userinfo` (`account`) ON DELETE CASCADE ON UPDATE CASCADE ) ENGINE=InnoDB DEFAULT CHARSET=utf8;") != 0)
+    {
+        user_wait();
+        exit(-1);
+    }
+
+    cout << "Creating `group` template table..." << endl;
+    sleep(2);
+    if (Mysql_query(&mysql, "CREATE TABLE `group` ( `account` varchar(32) DEFAULT NULL, `flag` enum('0','1','2') NOT NULL DEFAULT '0', KEY `account` (`account`), CONSTRAINT `group_ibfk_1` FOREIGN KEY (`account`) REFERENCES `userinfo` (`account`) ON DELETE CASCADE ON UPDATE CASCADE ) ENGINE=InnoDB DEFAULT CHARSET=utf8;") != 0)
+    {
+        user_wait();
+        exit(-1);
+    }
+
+    cout << "Creating `querybox` template table..." << endl;
+    sleep(2);
+    if (Mysql_query(&mysql, "CREATE TABLE `querybox` ( `Id` int(11) NOT NULL AUTO_INCREMENT, `type` varchar(10) NOT NULL DEFAULT '', `fromuser` varchar(32) NOT NULL DEFAULT '', `target` varchar(32) NOT NULL DEFAULT '', `content` text NOT NULL, PRIMARY KEY (`Id`) ) ENGINE=InnoDB DEFAULT CHARSET=utf8;") != 0)
+    {
+        user_wait();
+        exit(-1);
+    }
+
+    cout << "Initialization is finished, please restart without argument." << endl;
+    user_wait();
+    config.close();
 }
