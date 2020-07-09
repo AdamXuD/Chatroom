@@ -45,7 +45,6 @@ int sendMsg(Msg &msg, int fd) //发送消息用接口
     memset(buf, 0, sizeof(buf));
     memcpy(buf, &msg, sizeof(msg));
     int ret = write(fd, buf, sizeof(buf));
-    memset(&msg, 0, sizeof(msg));
     return ret;
 }
 

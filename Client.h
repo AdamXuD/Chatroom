@@ -32,7 +32,7 @@ public:
 
     /*群聊相关权限部分*/
     void Grouptalk(string command); //处理用户群聊请求
-
+    string memberlistMenu(const char *group);
     void groupMenu(string toGroup);
     void queryGroupMember(const char *Group, bool show);
     void createGroupTalk();      //创建群聊

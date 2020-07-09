@@ -90,6 +90,21 @@ void Client::queryGroupMember(const char *Group, bool show)
     }
 }
 
+string Client::memberlistMenu(const char *group) //1为提取群组 0为提取好友
+{
+    queryGroupMember(group, false);
+    string tmp[memberlist.size()];
+    cout << "请用上下键选择目标>" << endl;
+    map<string, int>::iterator it;
+    int i = 0;
+    for (it = memberlist.begin(); it != memberlist.end(); it++)
+    {
+        tmp[i] = it->first;
+        i++;
+    }
+    return tmp[menu(tmp, i) - 1];
+}
+
 void Client::groupMenu(string toGroup)
 {
     string group_menu[] = {"设定管理员",
@@ -102,32 +117,38 @@ void Client::groupMenu(string toGroup)
     {
     case 1:
     {
-        input(command, "请输入群员昵称>");
-        setMsg(msg, SETADMIN, acc.account, toGroup.c_str(), command.c_str());
-        sendMsg(msg, pipe_fd[1]);
-        break;
-    }
-    case 2:
-    {
-        input(command, "请输入群员昵称>");
-        setMsg(msg, KICKOFFMEMBER, acc.account, toGroup.c_str(), command.c_str());
-        sendMsg(msg, pipe_fd[1]);
-        break;
-    }
-    case 3:
-    {
-        cout << "您确定要退出 " << toGroup << "吗？（确定请输入1）" << endl;
-        if (input() == 1)
+        command = memberlistMenu(toGroup.c_str());
+        if (strEqual(command, "__nullstr") == false)
         {
             setMsg(msg, SETADMIN, acc.account, toGroup.c_str(), command.c_str());
             sendMsg(msg, pipe_fd[1]);
         }
         break;
     }
+    case 2:
+    {
+        command = memberlistMenu(toGroup.c_str());
+        if (strEqual(command, "__nullstr") == false)
+        {
+            setMsg(msg, KICKOFFMEMBER, acc.account, toGroup.c_str(), command.c_str());
+            sendMsg(msg, pipe_fd[1]);
+        }
+        break;
+    }
+    case 3:
+    {
+        cout << "您确定要退出 " << toGroup << "吗？（确定请按y）" << endl;
+        if (getch() == 'y' || getch() == 'Y')
+        {
+            setMsg(msg, LEAVEGROUP, acc.account, toGroup.c_str(), nullptr);
+            sendMsg(msg, pipe_fd[1]);
+        }
+        break;
+    }
     case 4:
     {
-        setMsg(msg, QUERYMEMBER, acc.account, toGroup.c_str(), "true");
-        sendMsg(msg, pipe_fd[1]);
+        queryGroupMember(toGroup.c_str(), true);
+        user_wait();
         break;
     }
     default:
@@ -141,17 +162,17 @@ void Client::groupMenu(string toGroup)
 void Client::Grouptalk(string command) //处理用户群聊请求
 {
     string toGroup = command;
-    cout << "你正在 " << toGroup << " 群内发言：（按ESC退出）" << endl;
     setMsg(msg, PIPE, nullptr, toGroup.c_str(), nullptr);
     queryGroupMember(toGroup.c_str(), false);
     sendMsg(msg, pipe_fd[1]);
+    cout << "你正在 " << toGroup << " 群内发言：（按ESC退出）" << endl;
     while (1)
     {
         string command;
         if (mygetline(command) == EOF)
         {
             cout << "您已结束与" << toGroup << "的聊天！" << endl;
-            setMsg(msg, PIPE, nullptr, "\0", nullptr);
+            setMsg(msg, PIPE, nullptr, "__ null__", nullptr);
             sendMsg(msg, pipe_fd[1]);
             break;
         }
@@ -184,7 +205,7 @@ void Client::Privatetalk(string command) //处理用户私聊请求
         if (mygetline(tmp) == EOF)
         {
             cout << "您已结束与" << toUser << "的聊天！" << endl;
-            setMsg(msg, PIPE, nullptr, "\0", nullptr);
+            setMsg(msg, PIPE, nullptr, "__ null__", nullptr);
             sendMsg(msg, pipe_fd[1]);
             break;
         }
@@ -290,7 +311,7 @@ void Server::createGroupTalk() //创建群聊
     Mysql_query(&mysql, query);
     sprintf(query, "insert into group_%s values ('%s', '2');", recv_msg.content, recv_msg.fromUser);
     Mysql_query(&mysql, query);
-    adminMsg("群组创建成功，请手动刷新好友列表（/queryfriendlist）！", recv_msg.fromUser);
+    adminMsg("群组创建成功，请手动刷新好友列表！", recv_msg.fromUser);
 }
 void Server::addGroupMember(char *Group, char *Member)
 {
@@ -301,8 +322,10 @@ void Server::addGroupMember(char *Group, char *Member)
     sprintf(content, "%s 加入群聊 %s 啦！", Member, Group);
     setMsg(send_msg, GROUPTALK, ADMIN, Group, content);
     Grouptalk(send_msg);
+    usleep(30000);
     sprintf(content, "你已加入群聊 %s 啦！", Group);
     adminMsg(content, Member);
+    usleep(30000);
 }
 void Server::setGroupAdmin() //设置管理员
 {

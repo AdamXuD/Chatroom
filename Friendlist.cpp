@@ -42,12 +42,6 @@ string Client::friendlistMenu(bool isFriend) //1为提取群组 0为提取好友
 {
     queryFriendList(false);
     string tmp[friendlist->size()];
-    if (friendlist->size() == 0)
-    {
-        cout << "好友列表为空，请先尝试刷新或添加好友！" << endl;
-        user_wait();
-        return "__nullstr";
-    }
     cout << "请用上下键选择目标>" << endl;
     map<string, int>::iterator it;
     int i = 0;
@@ -55,7 +49,7 @@ string Client::friendlistMenu(bool isFriend) //1为提取群组 0为提取好友
     {
         if (isFriend)
         {
-            if (it->second == 0)
+            if (it->second == 0 || it->second == 2 || it->second == 3)
             {
                 tmp[i] = it->first;
                 i++;
@@ -69,6 +63,16 @@ string Client::friendlistMenu(bool isFriend) //1为提取群组 0为提取好友
                 i++;
             }
         }
+    }
+    if (i == 0 || friendlist->size() == 0)
+    {
+        if (isFriend)
+            cout << "好友";
+        else
+            cout << "群员";
+        cout << "列表为空，请刷新或先添加聊天对象吧！" << endl;
+        user_wait();
+        return "__nullstr";
     }
     return tmp[menu(tmp, i) - 1];
 }
@@ -186,7 +190,7 @@ void Client::setKirai() //拉黑名单
     string command = friendlistMenu(true);
     if (strEqual(command, "__nullstr") == false)
     {
-        setMsg(msg, SUKI, acc.account, nullptr, command.c_str());
+        setMsg(msg, KIRAI, acc.account, nullptr, command.c_str());
         sendMsg(msg, pipe_fd[1]);
     }
     cout << "请求已发送！" << endl;
@@ -272,10 +276,12 @@ void Server::addFriend(char *account, char *whichfriend)
     Mysql_query(&mysql, query);
     sprintf(query, "insert into %s_friendlist values ('%s', '0');", whichfriend, account);
     Mysql_query(&mysql, query);
-    sprintf(content, "你已经和 %s 是好友啦！请手动刷新好友列表（/queryfriendlist），和他打招呼吧！", whichfriend);
-    adminMsg(content, account);                                                                                //发送提示
-    sprintf(content, "你已经和 %s 是好友啦！请手动刷新好友列表（/queryfriendlist），和他打招呼吧！", account); //发送提示
+    sprintf(content, "你已经和 %s 是好友啦！快去和他打招呼吧！", whichfriend);
+    adminMsg(content, account); //发送提示
+    usleep(30000);
+    sprintf(content, "你已经和 %s 是好友啦！快去和他打招呼吧！", account); //发送提示
     adminMsg(content, whichfriend);
+    usleep(30000);
 }
 bool Server::targetExisted(bool isFriend)
 {
@@ -463,7 +469,7 @@ void Server::sendOnlineFriends(int call)
     {
         if (row != NULL)
         {
-            if (strEqual(row[1], "0"))
+            if (strEqual(row[1], "0") || strEqual(row[1], "2") || strEqual(row[1], "3"))
             {
                 friendlist[i] = row[0];
                 i++;

@@ -295,14 +295,22 @@ void Client::dealwithmsg(char *Target)
     }
     default:
     {
-        cout << "unknown massage:" << endl;
-        cout << "Type:" << msg.type << endl;
-        cout << "From:" << msg.fromUser << endl;
-        cout << "To:" << msg.toUser << endl;
-        cout << "Content:" << msg.content << endl;
+        // cout << "unknown massage:" << endl;
+        // cout << "Type:" << msg.type << endl;
+        // cout << "From:" << msg.fromUser << endl;
+        // cout << "To:" << msg.toUser << endl;
+        // cout << "Content:" << msg.content << endl;
+        return;
     }
     }
-    cout << msg.fromUser << " 说：" << msg.content << endl;
+    if (strEqual(msg.fromUser, Target) || strEqual(msg.fromUser, ADMIN))
+    {
+        cout << "\033[33m>" << msg.fromUser << " 说：" << msg.content << "\033[0m" << endl; //当指定了聊天对象时 聊天对象消息高亮
+    }
+    else
+    {
+        cout << msg.fromUser << " 说：" << msg.content << endl;
+    }
 }
 
 void Client::Start() //客户端入口
@@ -360,7 +368,7 @@ void Client::Start() //客户端入口
     {
         close(pipe_fd[1]); //关闭写端
         close(listpipe_fd[0]);
-        char Target[32] = {0}; //存储聊天对象
+        char Target[32] = "__ null__"; //存储聊天对象
         while (isLogin)
         {
             int epoll_events_count = epoll_wait(epoll_fd, events, 10, -1);
