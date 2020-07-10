@@ -357,3 +357,4 @@ Chatroom
 *.a
 build/
 config.json
+*.db

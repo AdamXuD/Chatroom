@@ -5,7 +5,7 @@ set(CMAKE_CXX_STANDARD 11)
 
 include_directories(include)
 
-add_executable(Chatroom Client.cpp Server.cpp Common.cpp main.cpp Login.cpp Friendlist.cpp Talk.cpp include/jsoncpp.cpp)
+add_executable(Chatroom Client.cpp Server.cpp Common.cpp main.cpp Login.cpp Friendlist.cpp Talk.cpp include/jsoncpp.cpp include/sqlite3/sqlite3.c)
 
-target_link_libraries(Chatroom mysqlclient crypt pthread jsoncpp)
+target_link_libraries(Chatroom mysqlclient crypt pthread dl)
 

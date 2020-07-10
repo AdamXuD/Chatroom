@@ -91,15 +91,15 @@ void Client::queryFriendList(bool show) //请求好友列表
     else
     {
         friendlist->clear();
-        fstream fl;
-        fl.open("friendlist", ios::out);
-        fl << "account flag" << endl;
+        sqlite3_exec(db, "DELETE FROM friendlist", [](void *, int, char **, char **) { return 0; }, nullptr, &err);
         while (1)
         {
             recvMsg(listpipe_fd[0], msg, true);
             if (msg.type == LIST)
             {
-                fl << msg.fromUser << " " << msg.content << endl;
+                char query[1024];
+                sprintf(query, "INSERT INTO friendlist VALUES ('%s', %s);", msg.fromUser, msg.content);
+                sqlite3_exec(db, query, [](void *, int, char **, char **) { return 0; }, nullptr, &err);
                 (*friendlist)[msg.fromUser] = atoi(msg.content);
                 if (show)
                 {
@@ -143,7 +143,6 @@ void Client::queryFriendList(bool show) //请求好友列表
         {
             cout << "请求完毕！" << endl;
         }
-        fl.close();
     }
 }
 

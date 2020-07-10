@@ -117,6 +117,14 @@ void *HeartBeat(void *pointer)
     return nullptr;
 }
 
+void Client::databaseInit()
+{
+    sqlite3_open(string(acc.account).append(".db").c_str(), &db);
+    sqlite3_exec(db, "CREATE TABLE IF NOT EXISTS friendlist (account VARCHAR (32) NOT NULL, flag INT);", [](void *, int, char **,char **)->int{
+        return 0;
+    }, nullptr, &err);
+}
+
 void Client::dealWithQuery()
 {
     getQueryBox(false);

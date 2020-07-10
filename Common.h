@@ -19,6 +19,7 @@
 #include <termio.h>
 
 #include "json/json.h"
+#include "sqlite3/sqlite3.h"
 
 #define LOGINMODE 1 //默认关闭登录模式
 
@@ -114,3 +115,4 @@ int mygetline(string &str); //支持功能键的
 char *getTime();
 
 void serverInitialization();
+

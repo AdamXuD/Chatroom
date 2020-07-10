@@ -39,15 +39,18 @@ void Client::queryGroupMember(const char *Group, bool show)
     else
     {
         memberlist.clear();
-        fstream ml;
-        ml.open(Group, ios::out);
-        ml << "account flag" << endl;
+        char query[5120];
+        sprintf(query, "CREATE TABLE IF NOT EXISTS `group_%s` (account VARCHAR (32) NOT NULL, flag INT);", Group);
+        sqlite3_exec(db, query, [](void *, int, char **, char **){return 0;}, nullptr, &err);
+        sprintf(query, "DELETE FROM `group_%s`;", Group);
+        sqlite3_exec(db, query, [](void *, int, char **, char **){return 0;}, nullptr, &err);
         while (1)
         {
             recvMsg(listpipe_fd[0], msg, true);
             if (msg.type == LIST)
             {
-                ml << msg.fromUser << " " << msg.content << endl;
+                sprintf(query, "INSERT INTO `group_%s` VALUES ('%s', %s);", Group, msg.fromUser, msg.content);
+                sqlite3_exec(db, query, [](void *, int, char **, char **) { return 0; }, nullptr, &err);
                 memberlist[msg.fromUser] = atoi(msg.content);
                 if (show)
                 {
@@ -86,7 +89,6 @@ void Client::queryGroupMember(const char *Group, bool show)
         {
             cout << "请求完毕！" << endl;
         }
-        ml.close();
     }
 }
 

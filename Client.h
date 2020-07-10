@@ -17,6 +17,7 @@ public:
 
     void Start();
     void dealwithmsg(char *Target);
+    void databaseInit();
 
     /*好友列表部分*/
     void makeFriend();                          //添加好友
@@ -27,7 +28,7 @@ public:
     void setKirai();          //拉黑名单
     string friendlistMenu(bool isFriend); //好友列表菜单
     void getOnlineFriends();
-
+    
     /*好友列表部分*/
 
     /*群聊相关权限部分*/
@@ -59,6 +60,9 @@ private:
     map<string, int> memberlist;
     map<int, string> *Querybox;   //客户端使用该容器临时存储请求id和请求内容
     map<string, int> *friendlist; //用list类存储好友列表
+
+    sqlite3 *db;
+    char *err;
 
     struct Account acc;          //账号信息
 protected:

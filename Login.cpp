@@ -46,16 +46,26 @@ void Client::Login(Account acc) //重载里登录接口
             {
             case 1:
             {
-                fstream userinfo;
-                userinfo.open("userinfo", ios::out);
-                userinfo << "ACC:" << acc.account << endl;
-                userinfo << "PWD:" << acc.pwd;
-                userinfo.close();
+                Json::Value root;
+                Json::Reader reader;
+
+                fstream config("config.json", ios::in);
+                reader.parse(config, root);
+                config.close();
+
+                root["Client"]["Account"] = Json::Value(acc.account);
+                root["Client"]["pwd"] = Json::Value(acc.pwd);
+
+                Json::StyledWriter writter;
+                config.open("config.json", ios::out);
+                config << writter.write(root);
+                config.close();
                 break;
             }
             case 2:
                 break;
             }
+            databaseInit();
         }
         else
         {
@@ -114,16 +124,19 @@ void Client::Signup()
 }
 void Client::fileLogin()
 {
-    fstream userinfo;
-    userinfo.open("userinfo", ios::in);
-    if (!userinfo)
+    Json::Value root;
+    Json::Reader reader;
+
+    fstream config("config.json", ios::in);
+    reader.parse(config, root);
+    config.close();
+
+    if (root["Client"]["Account"].isNull() || root["Client"]["pwd"].isNull())
     {
-        userinfo.close();
         Login();
     }
     else
     {
-        userinfo.close();
         while (isLogin == false)
         {
             clear();
@@ -132,15 +145,8 @@ void Client::fileLogin()
             {
             case 1:
             {
-                string tmp;
-                fstream userinfo;
-                userinfo.open("userinfo", ios::in);
-                getline(userinfo, tmp);
-                tmp.erase(0, 4);
-                strcpy(acc.account, tmp.c_str());
-                getline(userinfo, tmp);
-                tmp.erase(0, 4);
-                strcpy(acc.pwd, tmp.c_str());
+                strcpy(acc.account, root["Client"]["Account"].asCString());
+                strcpy(acc.pwd, root["Client"]["pwd"].asCString());
                 Login(acc);
                 break;
             }
