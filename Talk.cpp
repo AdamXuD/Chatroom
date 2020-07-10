@@ -413,7 +413,7 @@ void Server::Grouptalk(Msg message, int call) //处理用户群聊请求
 {
     if (strEqual(message.fromUser, ADMIN) == false)
     {
-        sprintf(query, "insert into history values (null, '%s', '%s', '%s', '%s');", message.fromUser, message.toUser, message.content, getTime());
+        sprintf(query, "");
         Mysql_query(&mysql, query);
     }
     char query[1024], memberlist[1536][32] = {0};
@@ -456,7 +456,7 @@ void Server::Privatetalk(Msg msg) //处理用户私聊请求
 {
     if (strEqual(msg.fromUser, ADMIN) == false)
     {
-        sprintf(query, "insert into history values (null, '%s', '%s', '%s', '%s');", msg.fromUser, msg.toUser, msg.content, getTime());
+        sprintf(query, "");
         Mysql_query(&mysql, query);
     }
     map<int, pair<string, int>>::iterator i;
