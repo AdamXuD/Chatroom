@@ -106,7 +106,7 @@ int menu(string list[], int size, const char *tips = nullptr); //这个
 
 void input(string &str, const char *tips = nullptr); //输入框
 
-void newJson(const char *IP, int port);
+void newJson(const char *IP = nullptr, int port = 0);
 
 char *Getpass(const char *tips);
 

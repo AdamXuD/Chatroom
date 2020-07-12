@@ -31,6 +31,22 @@ void Client::Connect() //连接服务器用函数
         newJson(ip, port);
         config.open("config.json");
     }
+    else
+    {
+        reader.parse(config, root);
+        if (root["Client"]["ServerIP"].isNull() || root["Client"]["Port"].isNull())
+        {
+            char ip[17] = {0};
+            int port;
+            input(ip, "请输入服务器IP：");
+            input(port, "请输入端口号：");
+            root["Client"]["ServerIP"] = Json::Value(ip);
+            root["Client"]["Port"] = Json::Value(port);
+            Json::StyledWriter writter;
+            ofstream("config.json") << writter.write(root);
+        }
+    }
+
     reader.parse(config, root);
 
     sock_fd = socket(AF_INET, SOCK_STREAM, 0); //socket部分开始
@@ -120,9 +136,11 @@ void *HeartBeat(void *pointer)
 void Client::databaseInit()
 {
     sqlite3_open(string(acc.account).append(".db").c_str(), &db);
-    sqlite3_exec(db, "CREATE TABLE IF NOT EXISTS friendlist (account VARCHAR (32) NOT NULL, flag INT);", [](void *, int, char **,char **)->int{
-        return 0;
-    }, nullptr, &err);
+    sqlite3_exec(
+        db, "CREATE TABLE IF NOT EXISTS friendlist (account VARCHAR (32) NOT NULL, flag INT);", [](void *, int, char **, char **) -> int {
+            return 0;
+        },
+        nullptr, &err);
 }
 
 void Client::dealWithQuery()

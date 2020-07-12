@@ -240,17 +240,27 @@ void newJson(const char *IP, int port)
     Json::Value root;
     Json::Value server;
     Json::Value client;
+    if (IP != nullptr || port != 0)
+    {
+        server["ListenIP"] = Json::Value(IP);
+        server["Port"] = Json::Value(port);
+        client["ServerIP"] = Json::Value(IP);
+        client["Port"] = Json::Value(port);
+    }
+    else
+    {
+        server["ListenIP"] = Json::Value();
+        server["Port"] = Json::Value();
+        client["ServerIP"] = Json::Value();
+        client["Port"] = Json::Value();
+    }
 
-    server["ListenIP"] = Json::Value(IP);
-    server["Port"] = Json::Value(port);
     server["DatabaseAccount"] = Json::Value();
     server["DatabasePassword"] = Json::Value();
     server["DatabaseName"] = Json::Value();
     server["DatabasePort"] = Json::Value();
     root["Server"] = Json::Value(server);
 
-    client["ServerIP"] = Json::Value(IP);
-    client["Port"] = Json::Value(port);
     client["Account"] = Json::Value();
     client["pwd"] = Json::Value();
     root["Client"] = Json::Value(client);
@@ -331,7 +341,7 @@ void serverInitialization()
         cout << "Didn't find config.json. A new config.json has been created." << endl;
         cout << "Please finish the information in config.json first." << endl;
         cout << "After you finish the config, please input `confirm` to go ahead." << endl;
-        newJson("null", 0);
+        newJson();
     }
     else
     {
