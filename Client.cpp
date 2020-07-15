@@ -205,8 +205,10 @@ void Client::mainMenu()
                           "获取在线好友列表",     //10
                           "创建群组",             //11
                           "加入群组",             //12
-                          "返回"};                //13
-    switch (menu(main_menu, 13))                  //menu()的用法请查看注释
+                          "拉取私聊聊天记录",     //13
+                          "拉去群聊聊天记录",     //14
+                          "返回"};                //15
+    switch (menu(main_menu, 15))                  //menu()的用法请查看注释
     {
     case 1:
     {
@@ -275,6 +277,16 @@ void Client::mainMenu()
     {
         joinGroup();
         break;
+    }
+    case 13:
+    {
+        command = friendlistMenu(true);
+        getHistory(command);
+    }
+    case 14:
+    {
+        command = friendlistMenu(false);
+        getHistory(command);
     }
     default:
     {

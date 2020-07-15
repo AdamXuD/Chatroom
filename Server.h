@@ -33,7 +33,7 @@ public:
     void sendAdminMsg(Msg message, bool sw_query, char *Group = nullptr, char *fromUser = nullptr);
     int groupPermission(char *Group, char *Member); //请求权限值
     void addGroupMember(char *Group, char *Member);
-    void joinGroupQuery(); //处理加入群聊请求
+    void joinGroupQuery();                      //处理加入群聊请求
     void SendGroupMember(int call);             //发送群员列表
     void createGroupTalk();                     //创建群聊
     void setGroupAdmin();                       //设置管理员
@@ -46,6 +46,7 @@ public:
     /*私聊部分*/
     void Privatetalk(Msg msg); //处理用户私聊请求
     /*私聊部分*/
+    void sendHistory(int call);
 
     void dealWithMsg(int call); //消息分类处理
     void Start();               //服务端程序入口

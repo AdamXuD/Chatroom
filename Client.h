@@ -46,6 +46,8 @@ public:
     /*私聊部分*/
     void Privatetalk(string command); //处理用户私聊请求
     /*私聊部分*/
+    void getHistory(string command);
+
     ~Client();
 
     int sock_fd; //要连接的服务器句柄（句柄应该是这个意思吧

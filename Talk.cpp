@@ -41,16 +41,19 @@ void Client::queryGroupMember(const char *Group, bool show)
         memberlist.clear();
         char query[5120];
         sprintf(query, "CREATE TABLE IF NOT EXISTS `group_%s` (account VARCHAR (32) NOT NULL, flag INT);", Group);
-        sqlite3_exec(db, query, [](void *, int, char **, char **){return 0;}, nullptr, &err);
+        sqlite3_exec(
+            db, query, [](void *, int, char **, char **) { return 0; }, nullptr, &err);
         sprintf(query, "DELETE FROM `group_%s`;", Group);
-        sqlite3_exec(db, query, [](void *, int, char **, char **){return 0;}, nullptr, &err);
+        sqlite3_exec(
+            db, query, [](void *, int, char **, char **) { return 0; }, nullptr, &err);
         while (1)
         {
             recvMsg(listpipe_fd[0], msg, true);
             if (msg.type == LIST)
             {
                 sprintf(query, "INSERT INTO `group_%s` VALUES ('%s', %s);", Group, msg.fromUser, msg.content);
-                sqlite3_exec(db, query, [](void *, int, char **, char **) { return 0; }, nullptr, &err);
+                sqlite3_exec(
+                    db, query, [](void *, int, char **, char **) { return 0; }, nullptr, &err);
                 memberlist[msg.fromUser] = atoi(msg.content);
                 if (show)
                 {
@@ -219,6 +222,40 @@ void Client::Privatetalk(string command) //处理用户私聊请求
     }
 }
 /*私聊部分*/
+
+void Client::getHistory(string command)
+{
+    cout << "正在请求..." << endl;
+    sleep(1);
+    setMsg(msg, HISTORY, acc.account, command.c_str(), nullptr);
+    if (sendMsg(msg, pipe_fd[1]) < 0)
+    {
+        cout << "请求失败，请检查网络连接！" << endl;
+    }
+    else
+    {
+        fstream history;
+        sprintf(content, "%s_%s_record", command.c_str(), acc.account);
+        history.open(content, ios::out);
+        while (1)
+        {
+            recvMsg(listpipe_fd[0], msg, true);
+            if (msg.type == LIST)
+            {
+                history << "fromUser = " << msg.fromUser << endl;
+                history << "Target = " << msg.toUser << endl;
+                history << "content = " << msg.content << endl;
+                history << endl;
+            }
+            else if (msg.type == EOF)
+            {
+                break;
+            }
+        }
+        cout << "请求完毕！请到程序所在目录寻找对应的聊天记录！" << endl;
+        history.close();
+    }
+}
 
 /*客户端部分*/
 
@@ -413,7 +450,7 @@ void Server::Grouptalk(Msg message, int call) //处理用户群聊请求
 {
     if (strEqual(message.fromUser, ADMIN) == false)
     {
-        sprintf(query, "");
+        sprintf(query, "insert into history values (null, '%s', '%s', '%s', '%s');", message.fromUser, message.toUser, message.content, getTime());
         Mysql_query(&mysql, query);
     }
     char query[1024], memberlist[1536][32] = {0};
@@ -456,7 +493,7 @@ void Server::Privatetalk(Msg msg) //处理用户私聊请求
 {
     if (strEqual(msg.fromUser, ADMIN) == false)
     {
-        sprintf(query, "");
+        sprintf(query, "insert into history values (null, '%s', '%s', '%s', '%s');", msg.fromUser, msg.toUser, msg.content, getTime());
         Mysql_query(&mysql, query);
     }
     map<int, pair<string, int>>::iterator i;
@@ -484,5 +521,40 @@ void Server::Privatetalk(Msg msg) //处理用户私聊请求
     }
 }
 /*私聊部分*/
+
+void Server::sendHistory(int call)
+{
+    sprintf(query, "select flag from %s_friendlist where account = '%s';", recv_msg.fromUser, recv_msg.toUser);
+    Mysql_query(&mysql, query);
+    MYSQL_RES *res;
+    MYSQL_ROW row;
+    res = mysql_store_result(&mysql);
+    row = mysql_fetch_row(res);
+    if (row != NULL)
+    {
+        if(strEqual(row[0], "1"))
+        {
+            sprintf(query, "select fromUser, Target, content, time from History where Target = '%s';", recv_msg.toUser);
+        }
+        else
+        {
+            sprintf(query, "select fromUser, Target, content, time from History where (Target = '%s' and fromUser = '%s') or (Target = '%s' and fromUser = '%s');", recv_msg.fromUser, recv_msg.toUser, recv_msg.toUser, recv_msg.fromUser);
+        }
+        Mysql_query(&mysql, query);
+        MYSQL_RES *res;
+        MYSQL_ROW row;
+        res = mysql_store_result(&mysql);
+        while(row = mysql_fetch_row(res))
+        {
+            usleep(30000);
+            sprintf(content, "[%s]%s", row[3], row[2]);
+            setMsg(send_msg, LIST, row[0], row[1], content);
+            sendMsg(send_msg, call);
+        }
+    }
+    usleep(30000);
+    setMsg(send_msg, EOF, nullptr, nullptr, "EOF");
+    sendMsg(send_msg, call);
+}
 
 /*服务端部分*/

@@ -398,6 +398,13 @@ void serverInitialization()
         exit(-1);
     }
 
+    cout << "Creating `history` table..." << endl;
+    if (Mysql_query(&mysql, "CREATE TABLE `history` ( `Id` int(11) NOT NULL AUTO_INCREMENT, `fromUser` varchar(32) DEFAULT NULL, `Target` varchar(32) DEFAULT NULL, `content` text, `time` datetime DEFAULT NULL, PRIMARY KEY (`Id`) ) ENGINE=InnoDB AUTO_INCREMENT=19 DEFAULT CHARSET=utf8;") != 0)
+    {
+        user_wait();
+        exit(-1);
+    }
+
     cout << "Creating `friendlist` template table..." << endl;
     sleep(2);
     if (Mysql_query(&mysql, "CREATE TABLE `friendlist` ( `account` varchar(32) NOT NULL DEFAULT '', `flag` enum('0','1','2','3') NOT NULL DEFAULT '0', KEY `account` (`account`), CONSTRAINT `friendlist_ibfk_1` FOREIGN KEY (`account`) REFERENCES `userinfo` (`account`) ON DELETE CASCADE ON UPDATE CASCADE ) ENGINE=InnoDB DEFAULT CHARSET=utf8;") != 0)

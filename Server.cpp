@@ -180,6 +180,8 @@ void Server::dealWithMsg(int call)
     }
     case HISTORY:
     {
+        sendHistory(call);
+        break;
     }
     case COMMAND: //如果收到命令类消息
     {
